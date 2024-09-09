@@ -498,7 +498,7 @@ int main()
     // ----------------------------------------------------------------------
     equirectangularToCubemapShader.Use();
     equirectangularToCubemapShader.setInt("equirectangularMap", 0);
-    glUniformMatrix4fv(glGetUniformLocation(equirectangularToCubemapShader.Program(), "projection"), 1, GL_FALSE, glm::value_ptr(captureProjection));
+    equirectangularToCubemapShader.setMat4("projection", captureProjection);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, hdrTexture);
 
@@ -506,7 +506,7 @@ int main()
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
     for (unsigned int i = 0; i < 6; ++i)
     {
-        glUniformMatrix4fv(glGetUniformLocation(equirectangularToCubemapShader.Program(), "view"), 1, GL_FALSE, glm::value_ptr(captureViews[i]));
+        equirectangularToCubemapShader.setMat4("view",captureViews[i]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -543,7 +543,7 @@ int main()
     // -----------------------------------------------------------------------------
     irradianceShader.Use();
     irradianceShader.setInt("environmentMap", 0);
-    glUniformMatrix4fv(glGetUniformLocation(irradianceShader.Program(), "projection"), 1, GL_FALSE, glm::value_ptr(captureProjection));
+    irradianceShader.setMat4("projection", captureProjection);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 
@@ -551,7 +551,7 @@ int main()
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
     for (unsigned int i = 0; i < 6; ++i)
     {
-        glUniformMatrix4fv(glGetUniformLocation(irradianceShader.Program(), "view"), 1, GL_FALSE, glm::value_ptr(captureViews[i]));
+        irradianceShader.setMat4("view", captureViews[i]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -582,7 +582,7 @@ int main()
     // ----------------------------------------------------------------------------------------------------
     prefilterShader.Use();
     prefilterShader.setInt("environmentMap", 0);
-    glUniformMatrix4fv(glGetUniformLocation(prefilterShader.Program(), "projection"), 1, GL_FALSE, glm::value_ptr(captureProjection));
+    prefilterShader.setMat4("projection", captureProjection);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 
@@ -601,7 +601,7 @@ int main()
         prefilterShader.setFloat("roughness", roughness);
         for (unsigned int i = 0; i < 6; ++i)
         {
-            glUniformMatrix4fv(glGetUniformLocation(prefilterShader.Program(), "view"), 1, GL_FALSE, glm::value_ptr(captureViews[i]));
+            prefilterShader.setMat4("view", captureViews[i]);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -646,9 +646,9 @@ int main()
     // --------------------------------------------------
     glm::mat4 projection = glm::perspective(camera.Zoom(), (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
     pbrShader.Use();
-    glUniformMatrix4fv(glGetUniformLocation(pbrShader.Program(), "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+    pbrShader.setMat4("projection", projection);
     backgroundShader.Use();
-    glUniformMatrix4fv(glGetUniformLocation(backgroundShader.Program(), "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+    backgroundShader.setMat4("projection", projection);
 
     // then before rendering, configure the viewport to the original framebuffer's screen dimensions
     int scrWidth, scrHeight;
@@ -681,8 +681,8 @@ int main()
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 model = glm::mat4(1.0f);
         pbrShader.Use();
-        glUniformMatrix4fv(glGetUniformLocation(pbrShader.Program(), "view"), 1, GL_FALSE, glm::value_ptr(view));
-        pbrShader.setVec3("camPos", camera.Position().x, camera.Position().y, camera.Position().z);
+        pbrShader.setMat4("view", view);
+        pbrShader.setVec3("camPos", camera.Position());
 
         // bind pre-computed IBL data
         glActiveTexture(GL_TEXTURE0);
@@ -707,9 +707,9 @@ int main()
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-5.0, 0.0, 2.0));
-        glUniformMatrix4fv(glGetUniformLocation(pbrShader.Program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
+        pbrShader.setMat4("model", model);
         glm::mat3 normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        glUniformMatrix3fv(glGetUniformLocation(pbrShader.Program(), "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
+        pbrShader.setMat3("normalMatrix", normalMatrix);
         glBindVertexArray(sphereVAO);
         glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 
@@ -727,9 +727,9 @@ int main()
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-3.0, 0.0, 2.0));
-        glUniformMatrix4fv(glGetUniformLocation(pbrShader.Program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
+        pbrShader.setMat4("model", model);
         normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        glUniformMatrix3fv(glGetUniformLocation(pbrShader.Program(), "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
+        pbrShader.setMat3("normalMatrix", normalMatrix);
         glBindVertexArray(sphereVAO);
         glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 
@@ -747,9 +747,9 @@ int main()
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-1.0, 0.0, 2.0));
-        glUniformMatrix4fv(glGetUniformLocation(pbrShader.Program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
+        pbrShader.setMat4("model", model);
         normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        glUniformMatrix3fv(glGetUniformLocation(pbrShader.Program(), "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
+        pbrShader.setMat3("normalMatrix", normalMatrix);
         glBindVertexArray(sphereVAO);
         glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 
@@ -767,9 +767,9 @@ int main()
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(1.0, 0.0, 2.0));
-        glUniformMatrix4fv(glGetUniformLocation(pbrShader.Program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
+        pbrShader.setMat4("model", model);
         normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        glUniformMatrix3fv(glGetUniformLocation(pbrShader.Program(), "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
+        pbrShader.setMat3("normalMatrix", normalMatrix);
         glBindVertexArray(sphereVAO);
         glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 
@@ -787,9 +787,9 @@ int main()
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(3.0, 0.0, 2.0));
-        glUniformMatrix4fv(glGetUniformLocation(pbrShader.Program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
+        pbrShader.setMat4("model", model);
         normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        glUniformMatrix3fv(glGetUniformLocation(pbrShader.Program(), "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
+        pbrShader.setMat3("normalMatrix", normalMatrix);
         glBindVertexArray(sphereVAO);
         glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 
@@ -801,23 +801,23 @@ int main()
             glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
             newPos = lightPositions[i];
             std::string str = "lightPositions[" + std::to_string(i) + "]";
-            pbrShader.setVec3(str.c_str(), newPos.x, newPos.y, newPos.z);
+            pbrShader.setVec3(str.c_str(), newPos);
             str = "lightColors[" + std::to_string(i) + "]";
-            pbrShader.setVec3(str.c_str(), lightColors[i].x, lightColors[i].y, lightColors[i].z);
+            pbrShader.setVec3(str.c_str(), lightColors[i]);
 
             model = glm::mat4(1.0f);
             model = glm::translate(model, newPos);
             model = glm::scale(model, glm::vec3(0.5f));
-            glUniformMatrix4fv(glGetUniformLocation(pbrShader.Program(), "model"), 1, GL_FALSE, glm::value_ptr(model));
+            pbrShader.setMat4("model", model);
             normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-            glUniformMatrix3fv(glGetUniformLocation(pbrShader.Program(), "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
+            pbrShader.setMat3("normalMatrix", normalMatrix);
             glBindVertexArray(sphereVAO);
             glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
         }
 
         // render skybox (render as last to prevent overdraw)
         backgroundShader.Use();
-        glUniformMatrix4fv(glGetUniformLocation(backgroundShader.Program(), "view"), 1, GL_FALSE, glm::value_ptr(view));
+        backgroundShader.setMat4("view", view);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
         //glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap); // display irradiance map
@@ -828,7 +828,7 @@ int main()
         glBindVertexArray(0);
 
         /*equirectangularToCubemapShader.Use();
-        glUniformMatrix4fv(glGetUniformLocation(equirectangularToCubemapShader.Program(), "view"), 1, GL_FALSE, glm::value_ptr(view));
+        equirectangularToCubemapShader.setMat4("view", view);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, hdrTexture);
         glBindVertexArray(cubeVAO);

@@ -137,30 +137,43 @@ void TShader::Use()
     glUseProgram(m_program);
 }
 
-void TShader::setVec2(const GLchar* vecName,  GLfloat x, GLfloat y)
+void TShader::setVec2(const GLchar* vecName,  glm::vec2 const & _vec2)
 {
     GLint uniformId = glGetUniformLocation(Program(), vecName);
-    glUniform2f(uniformId, x, y);
+    glUniform2f(uniformId, _vec2.x, _vec2.y);
 }
 
 
 
-void TShader::setVec3(const GLchar* vecName,  GLfloat x, GLfloat y, GLfloat z)
+void TShader::setVec3(const GLchar* vecName,  glm::vec3 const & _vec3)
 {
     GLint uniformId = glGetUniformLocation(Program(), vecName);
-    glUniform3f(uniformId, x, y, z);
+    glUniform3f(uniformId, _vec3.x, _vec3.y, _vec3.z);
 }
 
-void TShader::setInt(const GLchar* vecName,  GLuint v)
+void TShader::setInt( GLchar const *vecName,  GLuint v)
 {
     GLint uniformId = glGetUniformLocation(Program(), vecName);
     glUniform1i(uniformId, v);
 }
 
-void TShader::setFloat(const GLchar* vecName,  GLfloat v)
+void TShader::setFloat( GLchar const *vecName,  GLfloat v)
 {
     GLint uniformId = glGetUniformLocation(Program(), vecName);
     glUniform1f(uniformId, v);
 }
+
+void TShader::setMat3( GLchar const *vecName, glm::mat3 const & _mat3 )
+{
+    GLint uniformId = glGetUniformLocation(Program(), vecName);
+    glUniformMatrix3fv(uniformId, 1, GL_FALSE, glm::value_ptr(_mat3));
+}
+
+void TShader::setMat4( GLchar const *vecName, glm::mat4 const & _mat4 )
+{
+    GLint uniformId = glGetUniformLocation(Program(), vecName);
+    glUniformMatrix4fv(uniformId, 1, GL_FALSE, glm::value_ptr(_mat4));
+}
+
 
 
