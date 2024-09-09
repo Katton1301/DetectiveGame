@@ -1,0 +1,94 @@
+cmake_minimum_required(VERSION 3.15)
+set(PROJECT_NAME "SecretsOfGlupchino")
+project(${PROJECT_NAME} VERSION 0.1.0)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_DEBUG_POSTFIX .debug)
+
+set(ENGINE_TARGET_NAME "${PROJECT_NAME}.Engine")
+
+include_directories("$ENV{OPENGL_DIR}/include")
+
+set(CMAKE_INSTALL_LIBDIR "lib" )
+set(CMAKE_INSTALL_BINDIR "${CMAKE_SOURCE_DIR}/_binaries" )
+set(CMAKE_SHARED_LIBRARY_PREFIX "")
+
+add_subdirectory("$ENV{OPENGL_DIR}/glew-2.1.0/" glew)
+add_subdirectory("$ENV{OPENGL_DIR}/soil/" soil)
+
+link_directories("$ENV{OPENGL_DIR}/lib")
+
+
+set(static_libraries glew soil "libglfw3.a")
+set(dynamic_libraries "libassimp-5.dll")
+#make_libraries_names(static_libraries "${static_libraries}")
+message(STATUS "static_libraries: ${static_libraries}")
+#make_libraries_names(dynamic_libraries "${dynamic_libraries}")
+message(STATUS "dynamic_libraries: ${dynamic_libraries}")
+add_compile_options(-Wall -Wextra -Wreturn-type -Wunused -Wno-terminate)
+
+get_property(include_dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+get_property(linker_options DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY LINK_OPTIONS)
+
+function(create_target_engine LIST_DIR)
+    set(CMAKE_AUTOMOC OFF)
+    set(CMAKE_AUTOUIC OFF)
+    set(CMAKE_AUTORCC OFF)
+    set(CMAKE_AUTOUIC_SEARCH_PATHS "")
+    set(sources "")
+    file(
+        GLOB_RECURSE
+        sources
+        "${LIST_DIR}/*.h"
+        "${LIST_DIR}/*.hpp"
+        "${LIST_DIR}/*.cpp"
+    )
+    include_directories(${LIST_DIR}/src)
+    add_library(
+        ${ENGINE_TARGET_NAME}
+        STATIC ${sources}
+    )
+    target_link_libraries(${ENGINE_TARGET_NAME} ${dynamic_libraries})
+    target_link_libraries(${ENGINE_TARGET_NAME} ${static_libraries})
+    target_include_directories(${ENGINE_TARGET_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+    install(TARGETS ${ENGINE_TARGET_NAME} DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endfunction()
+
+function(create_target_sandbox LIST_DIR)
+    set(SANDBOX_TARGET_NAME "${PROJECT_NAME}.SimulationTool")
+    include_directories( ${LIST_DIR}/src)
+    set(sources "")
+    file(
+            GLOB_RECURSE
+            sources
+            "${LIST_DIR}/*.h"
+            "${LIST_DIR}/*.hpp"
+            "${LIST_DIR}/*.cpp"
+    )
+
+
+    file(COPY "${CMAKE_CURRENT_LIST_DIR}/bin/shaders/" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/shaders/")
+    file(COPY "${CMAKE_CURRENT_LIST_DIR}/bin/texture/" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/texture/")
+
+    add_executable( ${SANDBOX_TARGET_NAME} ${sources} )
+    set(st_libraries "")
+    set(st_libraries ${st_libraries} "${ENGINE_TARGET_NAME}")
+    target_link_libraries(${SANDBOX_TARGET_NAME} ${static_libraries})
+    target_link_libraries(${SANDBOX_TARGET_NAME} ${dynamic_libraries})
+    target_link_libraries(${SANDBOX_TARGET_NAME} ${st_libraries})
+    set_target_properties(${SANDBOX_TARGET_NAME} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+
+
+    #foreach(lib ${dynamic_libraries})
+    #    install_library("${lib}" "${CMAKE_INSTALL_BINDIR}/sandbox")
+    #endforeach()
+    #foreach(lib ${st_libraries})
+    #    install_library("${lib}" "${CMAKE_INSTALL_BINDIR}/sandbox")
+    #endforeach()
+    install( TARGETS ${SANDBOX_TARGET_NAME} DESTINATION "${CMAKE_INSTALL_BINDIR}/sandbox" )
+endfunction()
+
+create_target_engine(${CMAKE_CURRENT_LIST_DIR}/engine)
+create_target_sandbox(${CMAKE_CURRENT_LIST_DIR}/sandbox)
+#add_subdirectory(tests)
+
+
