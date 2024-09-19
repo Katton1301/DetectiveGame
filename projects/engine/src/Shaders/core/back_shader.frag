@@ -1,4 +1,4 @@
-#version 330 core
+R"(#version 330 core
 out vec4 FragColor;
 in vec3 WorldPos;
 
@@ -13,4 +13,4 @@ void main()
     envColor = pow(envColor, vec3(1.0/2.2)); 
     
     FragColor = vec4(envColor, 1.0);
-}
+})"

@@ -96,16 +96,13 @@ TMesh TModel::processMesh(aiMesh *mesh, const aiScene *scene)
         }
     }
     // обработка материала
-    if(mesh->mMaterialIndex >= 0)
-    {
-        aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
-        std::vector<TTexture> diffuseMaps = loadMaterialTextures(material,
-                                            aiTextureType_DIFFUSE, "texture_diffuse");
-        textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-        std::vector<TTexture> specularMaps = loadMaterialTextures(material,
-                                            aiTextureType_SPECULAR, "texture_specular");
-        textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-    }
+    aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
+    std::vector<TTexture> diffuseMaps = loadMaterialTextures(material,
+                                        aiTextureType_DIFFUSE, "texture_diffuse");
+    textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+    std::vector<TTexture> specularMaps = loadMaterialTextures(material,
+                                        aiTextureType_SPECULAR, "texture_specular");
+    textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 
     return TMesh(vertices, indices, textures);
 }
@@ -141,7 +138,7 @@ std::vector<TTexture> TModel::loadMaterialTextures(aiMaterial *mat, aiTextureTyp
     return textures;
 }
 
-void TModel::Draw(TShader shader)
+void TModel::Draw(TShader & shader)
 {
     for(unsigned int i = 0; i < m_meshes.size(); i++)
     {

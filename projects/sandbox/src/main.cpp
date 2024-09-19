@@ -1,5 +1,5 @@
-#include "Shaders/shader.hpp"
-#include "Camera/camera.hpp"
+#include"shaders/pbr_shader.hpp"
+#include "camera/camera.hpp"
 #include<GLFW/glfw3.h>
 //#include "Model/model.hpp"
 #include <filesystem>
@@ -189,25 +189,10 @@ int main()
     // enable seamless cubemap sampling for lower mip levels in the pre-filter map.
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
-    TShader pbrShader("shaders/pbr_shader.vs", "shaders/pbr_shader.frag");
-    TShader equirectangularToCubemapShader("shaders/cubemap_shader.vs", "shaders/equirectangular_to_cubemap_shader.frag");
-    TShader irradianceShader("shaders/cubemap_shader.vs", "shaders/irradiance_convolution.frag");
-    TShader prefilterShader("shaders/cubemap_shader.vs", "shaders/prefilter_shader.frag");
-    TShader brdfShader("shaders/brdf_shader.vs", "shaders/brdf_shader.frag");
-    TShader backgroundShader("shaders/back_shader.vs", "shaders/back_shader.frag");
+    PBRShader pbrShader;
 
-    pbrShader.Use();
-    pbrShader.setInt("irradianceMap", 0);
-    pbrShader.setInt("prefilterMap", 1);
-    pbrShader.setInt("brdfLUT", 2);
-    pbrShader.setInt("albedoMap", 3);
-    pbrShader.setInt("normalMap", 4);
-    pbrShader.setInt("metallicMap", 5);
-    pbrShader.setInt("roughnessMap", 6);
-    pbrShader.setInt("aoMap", 7);
-
-    backgroundShader.Use();
-    backgroundShader.setInt("environmentMap", 0);
+    pbrShader.BackShader()->Use();
+    pbrShader.BackShader()->setInt("environmentMap", 0);
 
 
     // load PBR material textures
@@ -496,9 +481,9 @@ int main()
 
     // pbr: convert HDR equirectangular environment map to cubemap equivalent
     // ----------------------------------------------------------------------
-    equirectangularToCubemapShader.Use();
-    equirectangularToCubemapShader.setInt("equirectangularMap", 0);
-    equirectangularToCubemapShader.setMat4("projection", captureProjection);
+    pbrShader.EtCShader()->Use();
+    pbrShader.EtCShader()->setInt("equirectangularMap", 0);
+    pbrShader.EtCShader()->setMat4("projection", captureProjection);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, hdrTexture);
 
@@ -506,7 +491,7 @@ int main()
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
     for (unsigned int i = 0; i < 6; ++i)
     {
-        equirectangularToCubemapShader.setMat4("view",captureViews[i]);
+        pbrShader.EtCShader()->setMat4("view",captureViews[i]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -541,9 +526,9 @@ int main()
 
     // pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
     // -----------------------------------------------------------------------------
-    irradianceShader.Use();
-    irradianceShader.setInt("environmentMap", 0);
-    irradianceShader.setMat4("projection", captureProjection);
+    pbrShader.IrradianceShader()->Use();
+    pbrShader.IrradianceShader()->setInt("environmentMap", 0);
+    pbrShader.IrradianceShader()->setMat4("projection", captureProjection);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 
@@ -551,7 +536,7 @@ int main()
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
     for (unsigned int i = 0; i < 6; ++i)
     {
-        irradianceShader.setMat4("view", captureViews[i]);
+        pbrShader.IrradianceShader()->setMat4("view", captureViews[i]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -580,9 +565,9 @@ int main()
 
     // pbr: run a quasi monte-carlo simulation on the environment lighting to create a prefilter (cube)map.
     // ----------------------------------------------------------------------------------------------------
-    prefilterShader.Use();
-    prefilterShader.setInt("environmentMap", 0);
-    prefilterShader.setMat4("projection", captureProjection);
+    pbrShader.PrefilterShader()->Use();
+    pbrShader.PrefilterShader()->setInt("environmentMap", 0);
+    pbrShader.PrefilterShader()->setMat4("projection", captureProjection);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 
@@ -598,10 +583,10 @@ int main()
         glViewport(0, 0, mipWidth, mipHeight);
 
         float roughness = (float)mip / (float)(maxMipLevels - 1);
-        prefilterShader.setFloat("roughness", roughness);
+        pbrShader.PrefilterShader()->setFloat("roughness", roughness);
         for (unsigned int i = 0; i < 6; ++i)
         {
-            prefilterShader.setMat4("view", captureViews[i]);
+            pbrShader.PrefilterShader()->setMat4("view", captureViews[i]);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -634,7 +619,7 @@ int main()
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture, 0);
 
     glViewport(0, 0, 512, 512);
-    brdfShader.Use();
+    pbrShader.BRDFShader()->Use();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -645,10 +630,10 @@ int main()
     // initialize static shader uniforms before rendering
     // --------------------------------------------------
     glm::mat4 projection = glm::perspective(camera.Zoom(), (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
-    pbrShader.Use();
-    pbrShader.setMat4("projection", projection);
-    backgroundShader.Use();
-    backgroundShader.setMat4("projection", projection);
+    pbrShader.MainShader()->Use();
+    pbrShader.MainShader()->setMat4("projection", projection);
+    pbrShader.BackShader()->Use();
+    pbrShader.BackShader()->setMat4("projection", projection);
 
     // then before rendering, configure the viewport to the original framebuffer's screen dimensions
     int scrWidth, scrHeight;
@@ -680,9 +665,9 @@ int main()
 
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 model = glm::mat4(1.0f);
-        pbrShader.Use();
-        pbrShader.setMat4("view", view);
-        pbrShader.setVec3("camPos", camera.Position());
+        pbrShader.MainShader()->Use();
+        pbrShader.MainShader()->setMat4("view", view);
+        pbrShader.MainShader()->setVec3("camPos", camera.Position());
 
         // bind pre-computed IBL data
         glActiveTexture(GL_TEXTURE0);
@@ -707,9 +692,9 @@ int main()
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-5.0, 0.0, 2.0));
-        pbrShader.setMat4("model", model);
+        pbrShader.MainShader()->setMat4("model", model);
         glm::mat3 normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        pbrShader.setMat3("normalMatrix", normalMatrix);
+        pbrShader.MainShader()->setMat3("normalMatrix", normalMatrix);
         glBindVertexArray(sphereVAO);
         glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 
@@ -727,9 +712,9 @@ int main()
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-3.0, 0.0, 2.0));
-        pbrShader.setMat4("model", model);
+        pbrShader.MainShader()->setMat4("model", model);
         normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        pbrShader.setMat3("normalMatrix", normalMatrix);
+        pbrShader.MainShader()->setMat3("normalMatrix", normalMatrix);
         glBindVertexArray(sphereVAO);
         glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 
@@ -747,9 +732,9 @@ int main()
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-1.0, 0.0, 2.0));
-        pbrShader.setMat4("model", model);
+        pbrShader.MainShader()->setMat4("model", model);
         normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        pbrShader.setMat3("normalMatrix", normalMatrix);
+        pbrShader.MainShader()->setMat3("normalMatrix", normalMatrix);
         glBindVertexArray(sphereVAO);
         glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 
@@ -767,9 +752,9 @@ int main()
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(1.0, 0.0, 2.0));
-        pbrShader.setMat4("model", model);
+        pbrShader.MainShader()->setMat4("model", model);
         normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        pbrShader.setMat3("normalMatrix", normalMatrix);
+        pbrShader.MainShader()->setMat3("normalMatrix", normalMatrix);
         glBindVertexArray(sphereVAO);
         glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 
@@ -787,9 +772,9 @@ int main()
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(3.0, 0.0, 2.0));
-        pbrShader.setMat4("model", model);
+        pbrShader.MainShader()->setMat4("model", model);
         normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        pbrShader.setMat3("normalMatrix", normalMatrix);
+        pbrShader.MainShader()->setMat3("normalMatrix", normalMatrix);
         glBindVertexArray(sphereVAO);
         glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 
@@ -801,23 +786,23 @@ int main()
             glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
             newPos = lightPositions[i];
             std::string str = "lightPositions[" + std::to_string(i) + "]";
-            pbrShader.setVec3(str.c_str(), newPos);
+            pbrShader.MainShader()->setVec3(str.c_str(), newPos);
             str = "lightColors[" + std::to_string(i) + "]";
-            pbrShader.setVec3(str.c_str(), lightColors[i]);
+            pbrShader.MainShader()->setVec3(str.c_str(), lightColors[i]);
 
             model = glm::mat4(1.0f);
             model = glm::translate(model, newPos);
             model = glm::scale(model, glm::vec3(0.5f));
-            pbrShader.setMat4("model", model);
+            pbrShader.MainShader()->setMat4("model", model);
             normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-            pbrShader.setMat3("normalMatrix", normalMatrix);
+            pbrShader.MainShader()->setMat3("normalMatrix", normalMatrix);
             glBindVertexArray(sphereVAO);
             glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
         }
 
         // render skybox (render as last to prevent overdraw)
-        backgroundShader.Use();
-        backgroundShader.setMat4("view", view);
+        pbrShader.BackShader()->Use();
+        pbrShader.BackShader()->setMat4("view", view);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
         //glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap); // display irradiance map
@@ -827,8 +812,8 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
 
-        /*equirectangularToCubemapShader.Use();
-        equirectangularToCubemapShader.setMat4("view", view);
+        /*equirectangularToCubemapShader->Use();
+        equirectangularToCubemapShader->setMat4("view", view);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, hdrTexture);
         glBindVertexArray(cubeVAO);

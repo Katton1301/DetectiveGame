@@ -12,12 +12,15 @@
 #endif // _WIN32
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <string>
 
 class TShader
 {
 public:
     // Конструктор считывает и собирает шейдер
-    TShader(const GLchar* vertexPath, const GLchar* fragmentPath);
+    TShader( std::string const & vertexShaderText, std::string const & fragmentShaderText);
+    TShader() = delete;
+    TShader( TShader const & ) = delete;
     // Использование программы
     void Use();
 
@@ -40,6 +43,9 @@ public:
     {
         return m_program;
     }
+
 private:
     GLuint m_program;
 };
+
+using HShader = TShader*;

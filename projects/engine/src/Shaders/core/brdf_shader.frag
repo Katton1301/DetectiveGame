@@ -1,4 +1,4 @@
-#version 330 core
+R"(#version 330 core
 out vec2 FragColor;
 in vec2 TexCoords;
 
@@ -110,4 +110,4 @@ void main()
 {
     vec2 integratedBRDF = IntegrateBRDF(TexCoords.x, TexCoords.y);
     FragColor = integratedBRDF;
-}
+})"

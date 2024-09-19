@@ -1,4 +1,4 @@
-#version 330 core
+R"(#version 330 core
 out vec4 FragColor;
 in vec3 WorldPos;
 
@@ -35,4 +35,4 @@ void main()
     irradiance = PI * irradiance * (1.0 / float(nrSamples));
     
     FragColor = vec4(irradiance, 1.0);
-}
+})"

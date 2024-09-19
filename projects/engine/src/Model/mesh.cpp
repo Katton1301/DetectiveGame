@@ -37,7 +37,7 @@ void TMesh::setupMesh()
     glBindVertexArray(0);
 }
 
-void TMesh::Draw(TShader shader)
+void TMesh::Draw(TShader & shader)
 {
     unsigned int diffuseNr = 1;
     unsigned int specularNr = 1;

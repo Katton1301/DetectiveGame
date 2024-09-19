@@ -28,7 +28,7 @@ class TMesh
         /*  Mesh Data  */
         /*  Functions  */
         TMesh(std::vector<TVertex> vertices, std::vector<uint32_t> indices, std::vector<TTexture> textures);
-        void Draw(TShader shader);
+        void Draw(TShader & shader);
         unsigned int getVAO() const
         {
             return VAO;

@@ -1,4 +1,4 @@
-#version 330 core
+R"(#version 330 core
 out vec4 FragColor;
 in vec3 WorldPos;
 
@@ -103,4 +103,4 @@ void main()
     prefilteredColor = prefilteredColor / totalWeight;
 
     FragColor = vec4(prefilteredColor, 1.0);
-}
+})"

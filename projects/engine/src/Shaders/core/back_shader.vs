@@ -1,4 +1,4 @@
-#version 330 core
+R"(#version 330 core
 layout (location = 0) in vec3 aPos;
 
 uniform mat4 projection;
@@ -14,4 +14,4 @@ void main()
 	vec4 clipPos = projection * rotView * vec4(WorldPos, 1.0);
 
 	gl_Position = clipPos.xyww;
-}
+})"

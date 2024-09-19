@@ -11,7 +11,7 @@ class TModel
         {
             loadModel(path);
         }
-        void Draw(TShader shader);
+        void Draw(TShader & shader);
         std::vector<TMesh> & Meshes( )
         {
             return m_meshes;
