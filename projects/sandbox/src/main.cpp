@@ -1,19 +1,17 @@
 #include"shaders/pbr_shader.hpp"
 #include "camera/camera.hpp"
+#include "common/vertices.hpp"
 #include<GLFW/glfw3.h>
 //#include "Model/model.hpp"
 #include <filesystem>
-/*
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-*/
-#include <SOIL/SOIL.h>
+#include "textures/texture.hpp"
 // GLM Mathemtics
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <map>
+#include <array>
 #include <random>
 
 uint32_t screenWidth = 800;
@@ -26,7 +24,7 @@ bool keys[1024];
 GLfloat deltaTime = 0.0f;	// Время, прошедшее между последним и текущим кадром
 GLfloat lastFrame = 0.0f;  	// Время вывода последнего кадра
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
+void key_callback(GLFWwindow* window, int key, [[maybe_unused]]int scancode, int action, [[maybe_unused]]int mode)
 {
     if(action == GLFW_PRESS)
       keys[key] = true;
@@ -39,7 +37,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+void mouse_callback([[maybe_unused]]GLFWwindow* window, double xpos, double ypos)
 {
     GLfloat xoffset = xpos - lastX;
     GLfloat yoffset = lastY - ypos;  // Reversed since y-coordinates go from bottom to left
@@ -50,7 +48,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+void scroll_callback([[maybe_unused]]GLFWwindow* window, [[maybe_unused]]double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(yoffset);
 }
@@ -69,52 +67,7 @@ void do_movement()
 
 }
 
-float ourLerp(float a, float b, float f)
-{
-    return a + f * (b - a);
-}
-
-unsigned int loadTexture(char const *path, GLint rgb)
-{
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-
-
-    GLint notS_rgb = rgb;
-    if(notS_rgb == GL_SRGB_ALPHA)
-    {
-        notS_rgb = GL_RGBA;
-    }
-    if(notS_rgb == GL_SRGB)
-    {
-        notS_rgb = GL_RGB;
-    }
-
-
-    int width, height, nrComponents;
-    unsigned char *data = SOIL_load_image(path, &width, &height, 0, (rgb == GL_RGBA || rgb == GL_SRGB_ALPHA) ? SOIL_LOAD_RGBA : SOIL_LOAD_RGB);
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, rgb, width, height, 0, notS_rgb, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        SOIL_free_image_data(data);
-    }
-    else
-    {
-        std::cout << "Texture failed to load at path: " << path << std::endl;
-        SOIL_free_image_data(data);
-    }
-
-    return textureID;
-}
-
+/*
 unsigned int loadCubemap(std::vector<std::string> textures_faces, GLint rgb)
 {
     unsigned int textureID;
@@ -140,7 +93,7 @@ unsigned int loadCubemap(std::vector<std::string> textures_faces, GLint rgb)
 
     return textureID;
 }
-
+*/
 
 int main()
 {
@@ -195,38 +148,40 @@ int main()
     pbrShader.BackShader()->setInt("environmentMap", 0);
 
 
+
+    TTextureBuilder defaultTextureBuilder = TTextureBuilder("./texture/");
     // load PBR material textures
     // --------------------------
     // rusted iron
-    unsigned int ironAlbedoMap = loadTexture("./texture/pbr/rusted_iron/albedo.png", GL_SRGB_ALPHA);
-    unsigned int ironNormalMap = loadTexture("./texture/pbr/rusted_iron/normal.png", GL_SRGB_ALPHA);
-    unsigned int ironMetallicMap = loadTexture("./texture/pbr/rusted_iron/metallic.png", GL_SRGB_ALPHA);
-    unsigned int ironRoughnessMap = loadTexture("./texture/pbr/rusted_iron/roughness.png", GL_SRGB_ALPHA);
-    unsigned int ironAOMap = loadTexture("./texture/pbr/rusted_iron/ao.png", GL_SRGB_ALPHA);
+    uint32_t ironAlbedoMap = defaultTextureBuilder.MakeTexture("pbr/rusted_iron/albedo.png");
+    uint32_t ironNormalMap = defaultTextureBuilder.MakeTexture("pbr/rusted_iron/normal.png");
+    uint32_t ironMetallicMap = defaultTextureBuilder.MakeTexture("pbr/rusted_iron/metallic.png");
+    uint32_t ironRoughnessMap = defaultTextureBuilder.MakeTexture("pbr/rusted_iron/roughness.png");
+    uint32_t ironAOMap = defaultTextureBuilder.MakeTexture("pbr/rusted_iron/ao.png");
     // gold
-    unsigned int goldAlbedoMap = loadTexture("./texture/pbr/gold_nugget/albedo.png", GL_SRGB_ALPHA);
-    unsigned int goldNormalMap = loadTexture("./texture/pbr/gold_nugget/normal.png", GL_SRGB_ALPHA);
-    unsigned int goldMetallicMap = loadTexture("./texture/pbr/gold_nugget/metallic.png", GL_SRGB_ALPHA);
-    unsigned int goldRoughnessMap = loadTexture("./texture/pbr/gold_nugget/roughness.png", GL_SRGB_ALPHA);
-    unsigned int goldAOMap = loadTexture("./texture/pbr/gold_nugget/ao.png", GL_SRGB_ALPHA);
+    uint32_t goldAlbedoMap = defaultTextureBuilder.MakeTexture("pbr/gold_nugget/albedo.png");
+    uint32_t goldNormalMap = defaultTextureBuilder.MakeTexture("pbr/gold_nugget/normal.png");
+    uint32_t goldMetallicMap = defaultTextureBuilder.MakeTexture("pbr/gold_nugget/metallic.png");
+    uint32_t goldRoughnessMap = defaultTextureBuilder.MakeTexture("pbr/gold_nugget/roughness.png");
+    uint32_t goldAOMap = defaultTextureBuilder.MakeTexture("pbr/gold_nugget/ao.png");
     // grass
-    unsigned int grassAlbedoMap = loadTexture("./texture/pbr/grass/albedo.png", GL_SRGB_ALPHA);
-    unsigned int grassNormalMap = loadTexture("./texture/pbr/grass/normal.png", GL_SRGB_ALPHA);
-    unsigned int grassMetallicMap = loadTexture("./texture/pbr/grass/metallic.png", GL_SRGB_ALPHA);
-    unsigned int grassRoughnessMap = loadTexture("./texture/pbr/grass/roughness.png", GL_SRGB_ALPHA);
-    unsigned int grassAOMap = loadTexture("./texture/pbr/grass/ao.png", GL_SRGB_ALPHA);
+    uint32_t grassAlbedoMap = defaultTextureBuilder.MakeTexture("pbr/grass/albedo.png");
+    uint32_t grassNormalMap = defaultTextureBuilder.MakeTexture("pbr/grass/normal.png");
+    uint32_t grassMetallicMap = defaultTextureBuilder.MakeTexture("pbr/grass/metallic.png");
+    uint32_t grassRoughnessMap = defaultTextureBuilder.MakeTexture("pbr/grass/roughness.png");
+    uint32_t grassAOMap = defaultTextureBuilder.MakeTexture("pbr/grass/ao.png");
     // white marble
-    unsigned int marbleAlbedoMap = loadTexture("./texture/pbr/white_marble/albedo.png", GL_SRGB_ALPHA);
-    unsigned int marbleNormalMap = loadTexture("./texture/pbr/white_marble/normal.png", GL_SRGB_ALPHA);
-    unsigned int marbleMetallicMap = loadTexture("./texture/pbr/white_marble/metallic.png", GL_SRGB_ALPHA);
-    unsigned int marbleRoughnessMap = loadTexture("./texture/pbr/white_marble/roughness.png", GL_SRGB_ALPHA);
-    unsigned int marbleAOMap = loadTexture("./texture/pbr/white_marble/ao.png", GL_SRGB_ALPHA);
+    uint32_t marbleAlbedoMap = defaultTextureBuilder.MakeTexture("pbr/white_marble/albedo.png");
+    uint32_t marbleNormalMap = defaultTextureBuilder.MakeTexture("pbr/white_marble/normal.png");
+    uint32_t marbleMetallicMap = defaultTextureBuilder.MakeTexture("pbr/white_marble/metallic.png");
+    uint32_t marbleRoughnessMap = defaultTextureBuilder.MakeTexture("pbr/white_marble/roughness.png");
+    uint32_t marbleAOMap = defaultTextureBuilder.MakeTexture("pbr/white_marble/ao.png");
     // wood
-    unsigned int woodAlbedoMap = loadTexture("./texture/pbr/wood/albedo.png", GL_SRGB_ALPHA);
-    unsigned int woodNormalMap = loadTexture("./texture/pbr/wood/normal.png", GL_SRGB_ALPHA);
-    unsigned int woodMetallicMap = loadTexture("./texture/pbr/wood/metallic.png", GL_SRGB_ALPHA);
-    unsigned int woodRoughnessMap = loadTexture("./texture/pbr/wood/roughness.png", GL_SRGB_ALPHA);
-    unsigned int woodAOMap = loadTexture("./texture/pbr/wood/ao.png", GL_SRGB_ALPHA);
+    uint32_t woodAlbedoMap = defaultTextureBuilder.MakeTexture("pbr/wood/albedo.png");
+    uint32_t woodNormalMap = defaultTextureBuilder.MakeTexture("pbr/wood/normal.png");
+    uint32_t woodMetallicMap = defaultTextureBuilder.MakeTexture("pbr/wood/metallic.png");
+    uint32_t woodRoughnessMap = defaultTextureBuilder.MakeTexture("pbr/wood/roughness.png");
+    uint32_t woodAOMap = defaultTextureBuilder.MakeTexture("pbr/wood/ao.png");
 
     // lights
     // ------
@@ -331,88 +286,10 @@ int main()
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
     glBindVertexArray(0);
 
-    unsigned int cubeVAO;
-    unsigned int cubeVBO;
 
-    float vertices[] = {
-        // back face
-        -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-            1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-            1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
-            1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-        -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-        -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
-        // front face
-        -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-            1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
-            1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-            1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-        -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
-        -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-        // left face
-        -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-        -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
-        -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-        -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-        -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-        -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-        // right face
-            1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-            1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-            1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
-            1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-            1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-            1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
-        // bottom face
-        -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-            1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
-            1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-            1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-        -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-        -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-        // top face
-        -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-            1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-            1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
-            1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-        -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-        -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
-    };
-    glGenVertexArrays(1, &cubeVAO);
-    glGenBuffers(1, &cubeVBO);
-    // fill buffer
-    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    // link vertex attributes
-    glBindVertexArray(cubeVAO);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    TCubeVertices cubeVertices;
 
-    unsigned int quadVAO;
-    unsigned int quadVBO;
-    float quadVertices[] = {
-        // positions        // texture Coords
-        -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-            1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-            1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-    };
-    // setup plane VAO
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    TQuadVertices quadVertices;
 
     // pbr: setup framebuffer
     // ----------------------
@@ -428,26 +305,9 @@ int main()
 
     // pbr: load the HDR environment map
     // ---------------------------------
-    int nrComponents;
-    unsigned char *data = SOIL_load_image("texture/newport_loft.hdr", &width, &height, &nrComponents, SOIL_LOAD_AUTO);
-    unsigned int hdrTexture;
-    if (data)
-    {
-        glGenTextures(1, &hdrTexture);
-        glBindTexture(GL_TEXTURE_2D, hdrTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data); // note how we specify the texture's data value to be float
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        SOIL_free_image_data(data);
-    }
-    else
-    {
-        std::cout << "Failed to load HDR image." << std::endl;
-    }
+    defaultTextureBuilder.changeMinFilter(GL_LINEAR);
+    defaultTextureBuilder.changeMipMapGeneration(false);
+    uint32_t hdrTexture = defaultTextureBuilder.MakeTexture("newport_loft.hdr");
 
     // pbr: setup cubemap to render to and attach to framebuffer
     // ---------------------------------------------------------
@@ -495,7 +355,7 @@ int main()
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glBindVertexArray(cubeVAO);
+        glBindVertexArray(cubeVertices.VAO());
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
     }
@@ -540,7 +400,7 @@ int main()
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glBindVertexArray(cubeVAO);
+        glBindVertexArray(cubeVertices.VAO());
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
     }
@@ -558,7 +418,7 @@ int main()
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // be sure to set minification filter to mip_linear 
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // be sure to set minification filter to mip_linear
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     // generate mipmaps for the cubemap so OpenGL automatically allocates the required memory.
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
@@ -591,7 +451,7 @@ int main()
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            glBindVertexArray(cubeVAO);
+            glBindVertexArray(cubeVertices.VAO());
             glDrawArrays(GL_TRIANGLES, 0, 36);
             glBindVertexArray(0);
         }
@@ -621,7 +481,7 @@ int main()
     glViewport(0, 0, 512, 512);
     pbrShader.BRDFShader()->Use();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glBindVertexArray(quadVAO);
+    glBindVertexArray(quadVertices.VAO());
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
 
@@ -808,7 +668,7 @@ int main()
         //glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap); // display irradiance map
         //glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap); // display prefilter map
 
-        glBindVertexArray(cubeVAO);
+        glBindVertexArray(cubeVertices.VAO());
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
 
@@ -816,7 +676,7 @@ int main()
         equirectangularToCubemapShader->setMat4("view", view);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, hdrTexture);
-        glBindVertexArray(cubeVAO);
+        glBindVertexArray(cubeVertices.VAO());
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);*/
 

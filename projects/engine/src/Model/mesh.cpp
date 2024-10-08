@@ -1,6 +1,6 @@
 #include "mesh.hpp"
 
-TMesh::TMesh(std::vector<TVertex> vertices, std::vector<uint32_t> indices, std::vector<TTexture> textures)
+TMesh::TMesh(std::vector<TVertex> vertices, std::vector<uint32_t> indices, std::vector<STexture> textures)
 {
     m_vertices = vertices;
     m_indices = indices;

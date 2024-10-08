@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "../Shaders/shader.hpp"
+#include "../shaders/shader.hpp"
 // GL Includes
 #include <GL/glew.h>
 #include <glm/glm.hpp>
@@ -16,7 +16,7 @@ struct TVertex {
     glm::vec2 TexCoords;
 };
 
-struct TTexture {
+struct STexture {
     uint32_t id;
     std::string type;
     aiString  path;
@@ -27,7 +27,7 @@ class TMesh
     public:
         /*  Mesh Data  */
         /*  Functions  */
-        TMesh(std::vector<TVertex> vertices, std::vector<uint32_t> indices, std::vector<TTexture> textures);
+        TMesh(std::vector<TVertex> vertices, std::vector<uint32_t> indices, std::vector<STexture> textures);
         void Draw(TShader & shader);
         unsigned int getVAO() const
         {
@@ -45,5 +45,5 @@ class TMesh
     private: //attributes
         std::vector<TVertex> m_vertices{};
         std::vector<uint32_t> m_indices{};
-        std::vector<TTexture> m_textures{};
+        std::vector<STexture> m_textures{};
 };

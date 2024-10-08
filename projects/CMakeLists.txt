@@ -13,12 +13,11 @@ set(CMAKE_INSTALL_BINDIR "${CMAKE_SOURCE_DIR}/_binaries" )
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 
 add_subdirectory("$ENV{OPENGL_DIR}/glew-2.1.0/" glew)
-add_subdirectory("$ENV{OPENGL_DIR}/soil/" soil)
 
 link_directories("$ENV{OPENGL_DIR}/lib")
 
 
-set(static_libraries glew soil "libglfw3.a")
+set(static_libraries glew "libglfw3.a")
 set(dynamic_libraries "libassimp-5.dll")
 #make_libraries_names(static_libraries "${static_libraries}")
 message(STATUS "static_libraries: ${static_libraries}")
@@ -54,7 +53,7 @@ function(create_target_engine LIST_DIR)
 endfunction()
 
 function(create_target_sandbox LIST_DIR)
-    set(SANDBOX_TARGET_NAME "${PROJECT_NAME}.SimulationTool")
+    set(SANDBOX_TARGET_NAME "${PROJECT_NAME}.Sandbox")
     include_directories( ${LIST_DIR}/src)
     set(sources "")
     file(

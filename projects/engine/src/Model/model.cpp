@@ -1,26 +1,15 @@
 #include "model.hpp"
-#include <SOIL/SOIL.h>
+#include "textures/texture.hpp"
 
 GLuint TextureFromFile(const char* filename, std::string path)
 {
-    path += "/";
-    path += filename;
-    GLuint texture1;
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // Set texture filtering
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);  // NOTE the GL_NEAREST Here!
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);  // NOTE the GL_NEAREST Here!
-    int texWidth1, texHeight1;
-    unsigned char* image1 = SOIL_load_image(path.c_str(), &texWidth1, &texHeight1, 0, SOIL_LOAD_RGB);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth1, texHeight1, 0, GL_RGB, GL_UNSIGNED_BYTE, image1);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    SOIL_free_image_data(image1);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    return texture1;
+    TTextureBuilder textureBuilder = TTextureBuilder(path);
+    textureBuilder.changeWrapS(GL_REPEAT);
+    textureBuilder.changeWrapT(GL_REPEAT);
+    textureBuilder.changeMinFilter(GL_NEAREST);
+    textureBuilder.changeMagFilter(GL_NEAREST);
+    GLuint texture = textureBuilder.MakeTexture(filename);
+    return texture;
 }
 
 
@@ -58,7 +47,7 @@ TMesh TModel::processMesh(aiMesh *mesh, const aiScene *scene)
 {
     std::vector<TVertex> vertices;
     std::vector<uint32_t> indices;
-    std::vector<TTexture> textures;
+    std::vector<STexture> textures;
 
     for(unsigned int i = 0; i < mesh->mNumVertices; i++)
     {
@@ -97,19 +86,19 @@ TMesh TModel::processMesh(aiMesh *mesh, const aiScene *scene)
     }
     // обработка материала
     aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
-    std::vector<TTexture> diffuseMaps = loadMaterialTextures(material,
+    std::vector<STexture> diffuseMaps = loadMaterialTextures(material,
                                         aiTextureType_DIFFUSE, "texture_diffuse");
     textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-    std::vector<TTexture> specularMaps = loadMaterialTextures(material,
+    std::vector<STexture> specularMaps = loadMaterialTextures(material,
                                         aiTextureType_SPECULAR, "texture_specular");
     textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 
     return TMesh(vertices, indices, textures);
 }
 
-std::vector<TTexture> TModel::loadMaterialTextures(aiMaterial *mat, aiTextureType type, std::string typeName)
+std::vector<STexture> TModel::loadMaterialTextures(aiMaterial *mat, aiTextureType type, std::string typeName)
 {
-    std::vector<TTexture> textures;
+    std::vector<STexture> textures;
     for(unsigned int i = 0; i < mat->GetTextureCount(type); i++)
     {
         aiString str;
@@ -126,7 +115,7 @@ std::vector<TTexture> TModel::loadMaterialTextures(aiMaterial *mat, aiTextureTyp
         }
         if(!skip)
         {   // если текстура не была загружена – сделаем это
-            TTexture texture;
+            STexture texture;
             texture.id = TextureFromFile(str.C_Str(), m_directory);
             texture.type = typeName;
             texture.path = str;
