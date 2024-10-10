@@ -5,6 +5,7 @@
 //#include "Model/model.hpp"
 #include <filesystem>
 #include "textures/texture.hpp"
+#include "textures/cubemap.hpp"
 // GLM Mathemtics
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -149,39 +150,39 @@ int main()
 
 
 
-    TTextureBuilder defaultTextureBuilder = TTextureBuilder("./texture/");
+    TTextureBuilder defaultTextureBuilder;
     // load PBR material textures
     // --------------------------
     // rusted iron
-    uint32_t ironAlbedoMap = defaultTextureBuilder.MakeTexture("pbr/rusted_iron/albedo.png");
-    uint32_t ironNormalMap = defaultTextureBuilder.MakeTexture("pbr/rusted_iron/normal.png");
-    uint32_t ironMetallicMap = defaultTextureBuilder.MakeTexture("pbr/rusted_iron/metallic.png");
-    uint32_t ironRoughnessMap = defaultTextureBuilder.MakeTexture("pbr/rusted_iron/roughness.png");
-    uint32_t ironAOMap = defaultTextureBuilder.MakeTexture("pbr/rusted_iron/ao.png");
+    uint32_t ironAlbedoMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/rusted_iron/albedo.png");
+    uint32_t ironNormalMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/rusted_iron/normal.png");
+    uint32_t ironMetallicMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/rusted_iron/metallic.png");
+    uint32_t ironRoughnessMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/rusted_iron/roughness.png");
+    uint32_t ironAOMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/rusted_iron/ao.png");
     // gold
-    uint32_t goldAlbedoMap = defaultTextureBuilder.MakeTexture("pbr/gold_nugget/albedo.png");
-    uint32_t goldNormalMap = defaultTextureBuilder.MakeTexture("pbr/gold_nugget/normal.png");
-    uint32_t goldMetallicMap = defaultTextureBuilder.MakeTexture("pbr/gold_nugget/metallic.png");
-    uint32_t goldRoughnessMap = defaultTextureBuilder.MakeTexture("pbr/gold_nugget/roughness.png");
-    uint32_t goldAOMap = defaultTextureBuilder.MakeTexture("pbr/gold_nugget/ao.png");
+    uint32_t goldAlbedoMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/gold_nugget/albedo.png");
+    uint32_t goldNormalMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/gold_nugget/normal.png");
+    uint32_t goldMetallicMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/gold_nugget/metallic.png");
+    uint32_t goldRoughnessMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/gold_nugget/roughness.png");
+    uint32_t goldAOMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/gold_nugget/ao.png");
     // grass
-    uint32_t grassAlbedoMap = defaultTextureBuilder.MakeTexture("pbr/grass/albedo.png");
-    uint32_t grassNormalMap = defaultTextureBuilder.MakeTexture("pbr/grass/normal.png");
-    uint32_t grassMetallicMap = defaultTextureBuilder.MakeTexture("pbr/grass/metallic.png");
-    uint32_t grassRoughnessMap = defaultTextureBuilder.MakeTexture("pbr/grass/roughness.png");
-    uint32_t grassAOMap = defaultTextureBuilder.MakeTexture("pbr/grass/ao.png");
+    uint32_t grassAlbedoMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/grass/albedo.png");
+    uint32_t grassNormalMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/grass/normal.png");
+    uint32_t grassMetallicMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/grass/metallic.png");
+    uint32_t grassRoughnessMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/grass/roughness.png");
+    uint32_t grassAOMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/grass/ao.png");
     // white marble
-    uint32_t marbleAlbedoMap = defaultTextureBuilder.MakeTexture("pbr/white_marble/albedo.png");
-    uint32_t marbleNormalMap = defaultTextureBuilder.MakeTexture("pbr/white_marble/normal.png");
-    uint32_t marbleMetallicMap = defaultTextureBuilder.MakeTexture("pbr/white_marble/metallic.png");
-    uint32_t marbleRoughnessMap = defaultTextureBuilder.MakeTexture("pbr/white_marble/roughness.png");
-    uint32_t marbleAOMap = defaultTextureBuilder.MakeTexture("pbr/white_marble/ao.png");
+    uint32_t marbleAlbedoMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/white_marble/albedo.png");
+    uint32_t marbleNormalMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/white_marble/normal.png");
+    uint32_t marbleMetallicMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/white_marble/metallic.png");
+    uint32_t marbleRoughnessMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/white_marble/roughness.png");
+    uint32_t marbleAOMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/white_marble/ao.png");
     // wood
-    uint32_t woodAlbedoMap = defaultTextureBuilder.MakeTexture("pbr/wood/albedo.png");
-    uint32_t woodNormalMap = defaultTextureBuilder.MakeTexture("pbr/wood/normal.png");
-    uint32_t woodMetallicMap = defaultTextureBuilder.MakeTexture("pbr/wood/metallic.png");
-    uint32_t woodRoughnessMap = defaultTextureBuilder.MakeTexture("pbr/wood/roughness.png");
-    uint32_t woodAOMap = defaultTextureBuilder.MakeTexture("pbr/wood/ao.png");
+    uint32_t woodAlbedoMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/wood/albedo.png");
+    uint32_t woodNormalMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/wood/normal.png");
+    uint32_t woodMetallicMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/wood/metallic.png");
+    uint32_t woodRoughnessMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/wood/roughness.png");
+    uint32_t woodAOMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/wood/ao.png");
 
     // lights
     // ------
@@ -305,26 +306,16 @@ int main()
 
     // pbr: load the HDR environment map
     // ---------------------------------
-    defaultTextureBuilder.changeMinFilter(GL_LINEAR);
-    defaultTextureBuilder.changeMipMapGeneration(false);
-    uint32_t hdrTexture = defaultTextureBuilder.MakeTexture("newport_loft.hdr");
+    defaultTextureBuilder.setMinFilter(GL_LINEAR);
+    defaultTextureBuilder.setMipMapGeneration(false);
+    uint32_t hdrTexture = defaultTextureBuilder.MakeTexture("./texture", "newport_loft.hdr");
 
     // pbr: setup cubemap to render to and attach to framebuffer
     // ---------------------------------------------------------
-    unsigned int envCubemap;
-    glGenTextures(1, &envCubemap);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
-    for (unsigned int i = 0; i < 6; ++i)
-    {
-        // обратите внимание, что каждая грань использует 
-        // 16битный формат с плавающей точкой
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 512, 512, 0, GL_RGB, GL_FLOAT, nullptr);
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // enable pre-filter mipmap sampling (combatting visible dots artifact)
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    TCubeMapBuilder defaultCubemapBuilder;
+
+    defaultCubemapBuilder.setMipMapGeneration(false);
+    unsigned int envCubemap = defaultCubemapBuilder.MakeCubemap(512, 512);
 
     // pbr: set up projection and view matrices for capturing data onto the 6 cubemap face directions
     // ----------------------------------------------------------------------------------------------
@@ -367,18 +358,10 @@ int main()
 
     // pbr: create an irradiance cubemap, and re-scale capture FBO to irradiance scale.
     // --------------------------------------------------------------------------------
-    unsigned int irradianceMap;
-    glGenTextures(1, &irradianceMap);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
-    for (unsigned int i = 0; i < 6; ++i)
-    {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0, GL_RGB, GL_FLOAT, nullptr);
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    defaultCubemapBuilder.setMipMapGeneration(false);
+    defaultCubemapBuilder.setMinFilter(GL_LINEAR);
+    unsigned int irradianceMap = defaultCubemapBuilder.MakeCubemap(32, 32);
 
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
     glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
@@ -408,20 +391,9 @@ int main()
 
     // pbr: create a pre-filter cubemap, and re-scale capture FBO to pre-filter scale.
     // --------------------------------------------------------------------------------
-    unsigned int prefilterMap;
-    glGenTextures(1, &prefilterMap);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
-    for (unsigned int i = 0; i < 6; ++i)
-    {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 128, 128, 0, GL_RGB, GL_FLOAT, nullptr);
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // be sure to set minification filter to mip_linear
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // generate mipmaps for the cubemap so OpenGL automatically allocates the required memory.
-    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+    defaultCubemapBuilder.setMipMapGeneration(true);
+    unsigned int prefilterMap = defaultCubemapBuilder.MakeCubemap(128,128);
 
     // pbr: run a quasi monte-carlo simulation on the environment lighting to create a prefilter (cube)map.
     // ----------------------------------------------------------------------------------------------------

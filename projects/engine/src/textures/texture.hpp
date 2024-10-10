@@ -10,32 +10,24 @@
 class TTextureBuilder
 {
 public:
-    TTextureBuilder() = delete;
-    TTextureBuilder(std::string const & path,
-             GLint wrap_s = GL_CLAMP_TO_EDGE,
-             GLint wrap_t = GL_CLAMP_TO_EDGE,
-             GLint min_filter = GL_LINEAR_MIPMAP_LINEAR,
-             GLint mag_filter = GL_LINEAR);
+    TTextureBuilder();
+    TTextureBuilder( GLint wrap_s, GLint wrap_t, GLint min_filter, GLint mag_filter );
 
-    void changeWrapS(GLint _wrap_s);
+    void setWrapS(GLint _wrap_s);
 
-    void changeWrapT(GLint _wrap_t);
+    void setWrapT(GLint _wrap_t);
 
-    void changeMinFilter(GLint _min_filter);
+    void setMinFilter(GLint _min_filter);
 
-    void changeMagFilter(GLint _mag_filter);
+    void setMagFilter(GLint _mag_filter);
 
-    void changeMipMapGeneration(bool _mipmapGeneration);
+    void setMipMapGeneration(bool _mipmapGeneration);
 
-    uint32_t MakeTexture(std::string const & filename);
-
-    GLint LastBuiltID() const;
-private:
-    std::string m_path{};
+    uint32_t MakeTexture(std::string const & path, std::string const & filename) const;
+protected:
     GLint m_wrap_s = 0;
     GLint m_wrap_t = 0;
     GLint m_min_filter = 0;
     GLint m_mag_filter = 0;
     bool m_mipmapGeneration = true;
-    uint32_t m_id = 0;
 };

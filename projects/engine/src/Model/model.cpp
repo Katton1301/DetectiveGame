@@ -3,12 +3,12 @@
 
 GLuint TextureFromFile(const char* filename, std::string path)
 {
-    TTextureBuilder textureBuilder = TTextureBuilder(path);
-    textureBuilder.changeWrapS(GL_REPEAT);
-    textureBuilder.changeWrapT(GL_REPEAT);
-    textureBuilder.changeMinFilter(GL_NEAREST);
-    textureBuilder.changeMagFilter(GL_NEAREST);
-    GLuint texture = textureBuilder.MakeTexture(filename);
+    TTextureBuilder textureBuilder;
+    textureBuilder.setWrapS(GL_REPEAT);
+    textureBuilder.setWrapT(GL_REPEAT);
+    textureBuilder.setMinFilter(GL_NEAREST);
+    textureBuilder.setMagFilter(GL_NEAREST);
+    GLuint texture = textureBuilder.MakeTexture(path, filename);
     return texture;
 }
 
