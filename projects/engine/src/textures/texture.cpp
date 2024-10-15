@@ -82,3 +82,31 @@ uint32_t TTextureBuilder::MakeTexture(std::string const & path, std::string cons
     }
     return id;
 }
+
+PBRTextures TTextureBuilder::MakePBRTextures(std::string const & path) const
+{
+    PBRTextures pbr;
+    pbr.albedo = MakeTexture(path, "albedo.png");
+    pbr.normal = MakeTexture(path, "normal.png");
+    pbr.metallic = MakeTexture(path, "metallic.png");
+    pbr.roughness = MakeTexture(path, "roughness.png");
+    pbr.ao = MakeTexture(path, "ao.png");
+    return pbr;
+}
+
+PBRTextures TTextureBuilder::MakePBRTextures(
+        std::string const & path,
+        std::string const & albedo,
+        std::string const & normal,
+        std::string const & metallic,
+        std::string const & roughness,
+        std::string const & ao) const
+{
+    PBRTextures pbr;
+    pbr.albedo = MakeTexture(path, albedo);
+    pbr.normal = MakeTexture(path, normal);
+    pbr.metallic = MakeTexture(path, metallic);
+    pbr.roughness = MakeTexture(path, roughness);
+    pbr.ao = MakeTexture(path, ao);
+    return pbr;
+}

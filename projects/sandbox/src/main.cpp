@@ -117,35 +117,15 @@ int main()
     // load PBR material textures
     // --------------------------
     // rusted iron
-    uint32_t ironAlbedoMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/rusted_iron/albedo.png");
-    uint32_t ironNormalMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/rusted_iron/normal.png");
-    uint32_t ironMetallicMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/rusted_iron/metallic.png");
-    uint32_t ironRoughnessMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/rusted_iron/roughness.png");
-    uint32_t ironAOMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/rusted_iron/ao.png");
+    auto ironMap = defaultTextureBuilder.MakePBRTextures("./texture/pbr/rusted_iron");
     // gold
-    uint32_t goldAlbedoMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/gold_nugget/albedo.png");
-    uint32_t goldNormalMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/gold_nugget/normal.png");
-    uint32_t goldMetallicMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/gold_nugget/metallic.png");
-    uint32_t goldRoughnessMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/gold_nugget/roughness.png");
-    uint32_t goldAOMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/gold_nugget/ao.png");
+    auto goldMap = defaultTextureBuilder.MakePBRTextures("./texture/pbr/gold_nugget");
     // grass
-    uint32_t grassAlbedoMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/grass/albedo.png");
-    uint32_t grassNormalMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/grass/normal.png");
-    uint32_t grassMetallicMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/grass/metallic.png");
-    uint32_t grassRoughnessMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/grass/roughness.png");
-    uint32_t grassAOMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/grass/ao.png");
+    auto grassMap = defaultTextureBuilder.MakePBRTextures("./texture/pbr/grass");
     // white marble
-    uint32_t marbleAlbedoMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/white_marble/albedo.png");
-    uint32_t marbleNormalMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/white_marble/normal.png");
-    uint32_t marbleMetallicMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/white_marble/metallic.png");
-    uint32_t marbleRoughnessMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/white_marble/roughness.png");
-    uint32_t marbleAOMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/white_marble/ao.png");
+    auto marbleMap = defaultTextureBuilder.MakePBRTextures("./texture/pbr/white_marble");
     // wood
-    uint32_t woodAlbedoMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/wood/albedo.png");
-    uint32_t woodNormalMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/wood/normal.png");
-    uint32_t woodMetallicMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/wood/metallic.png");
-    uint32_t woodRoughnessMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/wood/roughness.png");
-    uint32_t woodAOMap = defaultTextureBuilder.MakeTexture("./texture", "pbr/wood/ao.png");
+    auto woodMap = defaultTextureBuilder.MakePBRTextures("./texture/pbr/wood");
 
     // lights
     // ------
@@ -384,15 +364,15 @@ int main()
 
         // rusted iron
         glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, ironAlbedoMap);
+        glBindTexture(GL_TEXTURE_2D, ironMap.albedo);
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, ironNormalMap);
+        glBindTexture(GL_TEXTURE_2D, ironMap.normal);
         glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, ironMetallicMap);
+        glBindTexture(GL_TEXTURE_2D, ironMap.metallic);
         glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, ironRoughnessMap);
+        glBindTexture(GL_TEXTURE_2D, ironMap.roughness);
         glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, ironAOMap);
+        glBindTexture(GL_TEXTURE_2D, ironMap.ao);
 
 
         model = glm::mat4(1.0f);
@@ -405,15 +385,15 @@ int main()
 
         // gold
         glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, goldAlbedoMap);
+        glBindTexture(GL_TEXTURE_2D, goldMap.albedo);
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, goldNormalMap);
+        glBindTexture(GL_TEXTURE_2D, goldMap.normal);
         glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, goldMetallicMap);
+        glBindTexture(GL_TEXTURE_2D, goldMap.metallic);
         glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, goldRoughnessMap);
+        glBindTexture(GL_TEXTURE_2D, goldMap.roughness);
         glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, goldAOMap);
+        glBindTexture(GL_TEXTURE_2D, goldMap.ao);
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-3.0, 0.0, 2.0));
@@ -425,15 +405,15 @@ int main()
 
         // grass
         glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, grassAlbedoMap);
+        glBindTexture(GL_TEXTURE_2D, grassMap.albedo);
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, grassNormalMap);
+        glBindTexture(GL_TEXTURE_2D, grassMap.normal);
         glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, grassMetallicMap);
+        glBindTexture(GL_TEXTURE_2D, grassMap.metallic);
         glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, grassRoughnessMap);
+        glBindTexture(GL_TEXTURE_2D, grassMap.roughness);
         glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, grassAOMap);
+        glBindTexture(GL_TEXTURE_2D, grassMap.ao);
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-1.0, 0.0, 2.0));
@@ -445,15 +425,15 @@ int main()
 
         // marble
         glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, marbleAlbedoMap);
+        glBindTexture(GL_TEXTURE_2D, marbleMap.albedo);
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, marbleNormalMap);
+        glBindTexture(GL_TEXTURE_2D, marbleMap.normal);
         glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, marbleMetallicMap);
+        glBindTexture(GL_TEXTURE_2D, marbleMap.metallic);
         glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, marbleRoughnessMap);
+        glBindTexture(GL_TEXTURE_2D, marbleMap.roughness);
         glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, marbleAOMap);
+        glBindTexture(GL_TEXTURE_2D, marbleMap.ao);
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(1.0, 0.0, 2.0));
@@ -465,15 +445,15 @@ int main()
 
         // wood
         glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, woodAlbedoMap);
+        glBindTexture(GL_TEXTURE_2D, woodMap.albedo);
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, woodNormalMap);
+        glBindTexture(GL_TEXTURE_2D, woodMap.normal);
         glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, woodMetallicMap);
+        glBindTexture(GL_TEXTURE_2D, woodMap.metallic);
         glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, woodRoughnessMap);
+        glBindTexture(GL_TEXTURE_2D, woodMap.roughness);
         glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, woodAOMap);
+        glBindTexture(GL_TEXTURE_2D, woodMap.ao);
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(3.0, 0.0, 2.0));

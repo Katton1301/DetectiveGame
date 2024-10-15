@@ -6,6 +6,16 @@
 #endif // _WIN32
 
 #include<string>
+#include<vector>
+
+struct PBRTextures
+{
+    uint32_t albedo;
+    uint32_t normal;
+    uint32_t metallic;
+    uint32_t roughness;
+    uint32_t ao;
+};
 
 class TTextureBuilder
 {
@@ -24,6 +34,14 @@ public:
     void setMipMapGeneration(bool _mipmapGeneration);
 
     uint32_t MakeTexture(std::string const & path, std::string const & filename) const;
+    PBRTextures MakePBRTextures(std::string const & path) const;
+    PBRTextures MakePBRTextures(
+            std::string const & path,
+            std::string const & albedo,
+            std::string const & normal,
+            std::string const & metallic,
+            std::string const & roughness,
+            std::string const & ao) const;
 protected:
     GLint m_wrap_s = 0;
     GLint m_wrap_t = 0;
