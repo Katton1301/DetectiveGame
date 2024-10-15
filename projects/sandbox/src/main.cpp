@@ -6,10 +6,6 @@
 #include <filesystem>
 #include "textures/texture.hpp"
 #include "textures/cubemap.hpp"
-// GLM Mathemtics
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <map>
 #include <array>
@@ -65,36 +61,7 @@ void do_movement()
         camera.ProcessKeyboard(LEFT, deltaTime);
     if(keys[GLFW_KEY_D])
         camera.ProcessKeyboard(RIGHT, deltaTime);
-
 }
-
-/*
-unsigned int loadCubemap(std::vector<std::string> textures_faces, GLint rgb)
-{
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
-    int width, height, nrComponents;
-
-    for(GLuint i = 0; i < textures_faces.size(); i++)
-    {
-
-        unsigned char *data = SOIL_load_image(textures_faces[i].c_str(), &width, &height, 0, (rgb == GL_RGBA || rgb == GL_SRGB_ALPHA) ? SOIL_LOAD_RGBA : SOIL_LOAD_RGB);
-        if (data)
-        {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, rgb, width, height, 0, rgb, GL_UNSIGNED_BYTE, data);
-            SOIL_free_image_data(data);
-        }
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-    return textureID;
-}
-*/
 
 int main()
 {
@@ -137,18 +104,14 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL); // set depth function to less than AND equal for skybox depth trick.
     // enable seamless cubemap sampling for lower mip levels in the pre-filter map.
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
     PBRShader pbrShader;
-
     pbrShader.BackShader()->Use();
     pbrShader.BackShader()->setInt("environmentMap", 0);
-
-
 
     TTextureBuilder defaultTextureBuilder;
     // load PBR material textures
@@ -199,103 +162,14 @@ int main()
         glm::vec3(300.0f, 300.0f, 300.0f)
     };
 
-    unsigned int sphereVAO;
-    unsigned int indexCount;
-
-    glGenVertexArrays(1, &sphereVAO);
-
-    unsigned int vbo, ebo;
-    glGenBuffers(1, &vbo);
-    glGenBuffers(1, &ebo);
-
-    std::vector<glm::vec3> positions;
-    std::vector<glm::vec2> uv;
-    std::vector<glm::vec3> normals;
-    std::vector<unsigned int> indices;
-
-    const unsigned int X_SEGMENTS = 64;
-    const unsigned int Y_SEGMENTS = 64;
-    const float PI = 3.14159265359f;
-    for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
-    {
-        for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
-        {
-            float xSegment = (float)x / (float)X_SEGMENTS;
-            float ySegment = (float)y / (float)Y_SEGMENTS;
-            float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
-            float yPos = std::cos(ySegment * PI);
-            float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
-
-            positions.push_back(glm::vec3(xPos, yPos, zPos));
-            uv.push_back(glm::vec2(xSegment, ySegment));
-            normals.push_back(glm::vec3(xPos, yPos, zPos));
-        }
-    }
-
-    bool oddRow = false;
-    for (unsigned int y = 0; y < Y_SEGMENTS; ++y)
-    {
-        if (!oddRow) // even rows: y == 0, y == 2; and so on
-        {
-            for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
-            {
-                indices.push_back(y       * (X_SEGMENTS + 1) + x);
-                indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-            }
-        }
-        else
-        {
-            for (int x = X_SEGMENTS; x >= 0; --x)
-            {
-                indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-                indices.push_back(y       * (X_SEGMENTS + 1) + x);
-            }
-        }
-        oddRow = !oddRow;
-    }
-    indexCount = static_cast<unsigned int>(indices.size());
-
-    std::vector<float> points;
-    for (unsigned int i = 0; i < positions.size(); ++i)
-    {
-        points.push_back(positions[i].x);
-        points.push_back(positions[i].y);
-        points.push_back(positions[i].z);
-        if (normals.size() > 0)
-        {
-            points.push_back(normals[i].x);
-            points.push_back(normals[i].y);
-            points.push_back(normals[i].z);
-        }
-        if (uv.size() > 0)
-        {
-            points.push_back(uv[i].x);
-            points.push_back(uv[i].y);
-        }
-    }
-    glBindVertexArray(sphereVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float), &points[0], GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
-    unsigned int stride = (3 + 2 + 3) * sizeof(float);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
-    glEnableVertexAttribArray(1);        
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
-    glBindVertexArray(0);
-
-
     TCubeVertices cubeVertices;
-
     TQuadVertices quadVertices;
+    TSphereVertices sphereVertices(64);
 
     // pbr: setup framebuffer
     // ----------------------
-    unsigned int captureFBO;
-    unsigned int captureRBO;
+    uint32_t captureFBO;
+    uint32_t captureRBO;
     glGenFramebuffers(1, &captureFBO);
     glGenRenderbuffers(1, &captureRBO);
 
@@ -315,7 +189,7 @@ int main()
     TCubeMapBuilder defaultCubemapBuilder;
 
     defaultCubemapBuilder.setMipMapGeneration(false);
-    unsigned int envCubemap = defaultCubemapBuilder.MakeCubemap(512, 512);
+    uint32_t envCubemap = defaultCubemapBuilder.MakeCubemap(512, 512);
 
     // pbr: set up projection and view matrices for capturing data onto the 6 cubemap face directions
     // ----------------------------------------------------------------------------------------------
@@ -340,7 +214,7 @@ int main()
 
     glViewport(0, 0, 512, 512); // don't forget to configure the viewport to the capture dimensions.
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-    for (unsigned int i = 0; i < 6; ++i)
+    for (uint32_t i = 0; i < 6; ++i)
     {
         pbrShader.EtCShader()->setMat4("view",captureViews[i]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
@@ -361,7 +235,7 @@ int main()
 
     defaultCubemapBuilder.setMipMapGeneration(false);
     defaultCubemapBuilder.setMinFilter(GL_LINEAR);
-    unsigned int irradianceMap = defaultCubemapBuilder.MakeCubemap(32, 32);
+    uint32_t irradianceMap = defaultCubemapBuilder.MakeCubemap(32, 32);
 
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
     glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
@@ -377,7 +251,7 @@ int main()
 
     glViewport(0, 0, 32, 32); // don't forget to configure the viewport to the capture dimensions.
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-    for (unsigned int i = 0; i < 6; ++i)
+    for (uint32_t i = 0; i < 6; ++i)
     {
         pbrShader.IrradianceShader()->setMat4("view", captureViews[i]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
@@ -393,7 +267,7 @@ int main()
     // --------------------------------------------------------------------------------
 
     defaultCubemapBuilder.setMipMapGeneration(true);
-    unsigned int prefilterMap = defaultCubemapBuilder.MakeCubemap(128,128);
+    uint32_t prefilterMap = defaultCubemapBuilder.MakeCubemap(128,128);
 
     // pbr: run a quasi monte-carlo simulation on the environment lighting to create a prefilter (cube)map.
     // ----------------------------------------------------------------------------------------------------
@@ -404,19 +278,19 @@ int main()
     glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-    unsigned int maxMipLevels = 5;
-    for (unsigned int mip = 0; mip < maxMipLevels; ++mip)
+    uint32_t maxMipLevels = 5;
+    for (uint32_t mip = 0; mip < maxMipLevels; ++mip)
     {
         // reisze framebuffer according to mip-level size.
-        unsigned int mipWidth = static_cast<unsigned int>(128 * std::pow(0.5, mip));
-        unsigned int mipHeight = static_cast<unsigned int>(128 * std::pow(0.5, mip));
+        uint32_t mipWidth = static_cast<uint32_t>(128 * std::pow(0.5, mip));
+        uint32_t mipHeight = static_cast<uint32_t>(128 * std::pow(0.5, mip));
         glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
         glViewport(0, 0, mipWidth, mipHeight);
 
         float roughness = (float)mip / (float)(maxMipLevels - 1);
         pbrShader.PrefilterShader()->setFloat("roughness", roughness);
-        for (unsigned int i = 0; i < 6; ++i)
+        for (uint32_t i = 0; i < 6; ++i)
         {
             pbrShader.PrefilterShader()->setMat4("view", captureViews[i]);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
@@ -432,7 +306,7 @@ int main()
 
     // pbr: generate a 2D LUT from the BRDF equations used.
     // ----------------------------------------------------
-    unsigned int brdfLUTTexture;
+    uint32_t brdfLUTTexture;
     glGenTextures(1, &brdfLUTTexture);
 
     // pre-allocate enough memory for the LUT texture.
@@ -494,7 +368,6 @@ int main()
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 model = glm::mat4(1.0f);
         pbrShader.MainShader()->Use();
@@ -527,8 +400,8 @@ int main()
         pbrShader.MainShader()->setMat4("model", model);
         glm::mat3 normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
         pbrShader.MainShader()->setMat3("normalMatrix", normalMatrix);
-        glBindVertexArray(sphereVAO);
-        glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(sphereVertices.VAO());
+        glDrawElements(GL_TRIANGLE_STRIP, sphereVertices.Indices().size(), GL_UNSIGNED_INT, 0);
 
         // gold
         glActiveTexture(GL_TEXTURE3);
@@ -547,8 +420,8 @@ int main()
         pbrShader.MainShader()->setMat4("model", model);
         normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
         pbrShader.MainShader()->setMat3("normalMatrix", normalMatrix);
-        glBindVertexArray(sphereVAO);
-        glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(sphereVertices.VAO());
+        glDrawElements(GL_TRIANGLE_STRIP, sphereVertices.Indices().size(), GL_UNSIGNED_INT, 0);
 
         // grass
         glActiveTexture(GL_TEXTURE3);
@@ -567,8 +440,8 @@ int main()
         pbrShader.MainShader()->setMat4("model", model);
         normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
         pbrShader.MainShader()->setMat3("normalMatrix", normalMatrix);
-        glBindVertexArray(sphereVAO);
-        glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(sphereVertices.VAO());
+        glDrawElements(GL_TRIANGLE_STRIP, sphereVertices.Indices().size(), GL_UNSIGNED_INT, 0);
 
         // marble
         glActiveTexture(GL_TEXTURE3);
@@ -587,8 +460,8 @@ int main()
         pbrShader.MainShader()->setMat4("model", model);
         normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
         pbrShader.MainShader()->setMat3("normalMatrix", normalMatrix);
-        glBindVertexArray(sphereVAO);
-        glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(sphereVertices.VAO());
+        glDrawElements(GL_TRIANGLE_STRIP, sphereVertices.Indices().size(), GL_UNSIGNED_INT, 0);
 
         // wood
         glActiveTexture(GL_TEXTURE3);
@@ -607,13 +480,13 @@ int main()
         pbrShader.MainShader()->setMat4("model", model);
         normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
         pbrShader.MainShader()->setMat3("normalMatrix", normalMatrix);
-        glBindVertexArray(sphereVAO);
-        glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(sphereVertices.VAO());
+        glDrawElements(GL_TRIANGLE_STRIP, sphereVertices.Indices().size(), GL_UNSIGNED_INT, 0);
 
         // render light source (simply re-render sphere at light positions)
         // this looks a bit off as we use the same shader, but it'll make their positions obvious and 
         // keeps the codeprint small.
-        for (unsigned int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); ++i)
+        for (uint32_t i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); ++i)
         {
             glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
             newPos = lightPositions[i];
@@ -628,8 +501,8 @@ int main()
             pbrShader.MainShader()->setMat4("model", model);
             normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
             pbrShader.MainShader()->setMat3("normalMatrix", normalMatrix);
-            glBindVertexArray(sphereVAO);
-            glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
+            glBindVertexArray(sphereVertices.VAO());
+            glDrawElements(GL_TRIANGLE_STRIP, sphereVertices.Indices().size(), GL_UNSIGNED_INT, 0);
         }
 
         // render skybox (render as last to prevent overdraw)
@@ -657,7 +530,6 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
     glfwTerminate();
     return 0;
 }

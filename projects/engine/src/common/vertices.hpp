@@ -8,6 +8,10 @@
 #endif // _WIN32
 
 #include<vector>
+// GLM Mathemtics
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 class TVertices : public IVertices
 {
@@ -42,6 +46,23 @@ public:
     ~TCubeVertices() = default;
 private:
     void Init() override;
+};
+
+class TSphereVertices : public TVertices
+{
+public:
+    TSphereVertices();
+    TSphereVertices( uint32_t radius );
+    ~TSphereVertices() = default;
+
+    std::vector<uint32_t> const & Indices();
+private:
+    uint32_t R() const;
+    void Init() override;
+
+private:
+    uint32_t m_radius = 1;
+    std::vector<uint32_t> m_indices;
 };
 
 
