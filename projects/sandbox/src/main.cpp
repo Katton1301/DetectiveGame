@@ -11,8 +11,8 @@
 #include <array>
 #include <random>
 
-uint32_t screenWidth = 800;
-uint32_t screenHeight = 600;
+uint32_t screenWidth = 1024;
+uint32_t screenHeight = 768;
 GLfloat lastX = 400, lastY = 300;
 uint32_t renderBufferSize = 512;
 uint32_t minBufferSize = 32;
@@ -111,7 +111,6 @@ int main()
     // enable seamless cubemap sampling for lower mip levels in the pre-filter map.
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
-    TPBRBuilder pbrBuilder;
     TTextureBuilder defaultTextureBuilder;
     // load PBR material textures
     // --------------------------
@@ -141,12 +140,9 @@ int main()
         glm::vec3(300.0f, 300.0f, 300.0f)
     };
 
-    TCubeVertices cubeVertices;
-    TQuadVertices quadVertices;
     TSphereVertices sphereVertices(64);
-
-    pbrBuilder.initCuptureBuffer();
-    pbrBuilder.setCubeVAO(cubeVertices.VAO());
+    TCubeVertices cubeVertices;
+    TPBRBuilder pbrBuilder;
 
     // pbr: load the HDR environment map
     // ---------------------------------
@@ -154,123 +150,10 @@ int main()
     defaultTextureBuilder.setMipMapGeneration(false);
     uint32_t hdrTexture = defaultTextureBuilder.MakeTexture("./texture", "newport_loft.hdr");
 
-    // pbr: setup cubemap to render to and attach to framebuffer
-    // ---------------------------------------------------------
-
-    uint32_t envCubemap = pbrBuilder.convertEtoC(hdrTexture);
-
-    // pbr: create an irradiance cubemap, and re-scale capture FBO to irradiance scale.
-    // --------------------------------------------------------------------------------
-
-    TCubeMapBuilder defaultCubemapBuilder;
-    defaultCubemapBuilder.setMipMapGeneration(false);
-    defaultCubemapBuilder.setMinFilter(GL_LINEAR);
-    uint32_t irradianceMap = defaultCubemapBuilder.MakeCubemap(minBufferSize, minBufferSize);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, pbrBuilder.CuptureFBO());
-    glBindRenderbuffer(GL_RENDERBUFFER, pbrBuilder.CuptureRBO());
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, minBufferSize, minBufferSize);
-
-    // pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
-    // -----------------------------------------------------------------------------
-    pbrBuilder.Shader().IrradianceShader()->Use();
-    pbrBuilder.Shader().IrradianceShader()->setInt("environmentMap", 0);
-    pbrBuilder.Shader().IrradianceShader()->setMat4("projection", pbrBuilder.CaptureProjection());
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
-
-    glViewport(0, 0, minBufferSize, minBufferSize); // don't forget to configure the viewport to the capture dimensions.
-    glBindFramebuffer(GL_FRAMEBUFFER, pbrBuilder.CuptureFBO());
-    for (uint32_t i = 0; i < 6; ++i)
-    {
-        pbrBuilder.Shader().IrradianceShader()->setMat4("view", pbrBuilder.CaptureViews()[i]);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glBindVertexArray(cubeVertices.VAO());
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // pbr: create a pre-filter cubemap, and re-scale capture FBO to pre-filter scale.
-    // --------------------------------------------------------------------------------
-
-    defaultCubemapBuilder.setMipMapGeneration(true);
-    uint32_t prefilterMap = defaultCubemapBuilder.MakeCubemap(128,128);
-
-    // pbr: run a quasi monte-carlo simulation on the environment lighting to create a prefilter (cube)map.
-    // ----------------------------------------------------------------------------------------------------
-    pbrBuilder.Shader().PrefilterShader()->Use();
-    pbrBuilder.Shader().PrefilterShader()->setInt("environmentMap", 0);
-    pbrBuilder.Shader().PrefilterShader()->setMat4("projection", pbrBuilder.CaptureProjection());
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, pbrBuilder.CuptureFBO());
-    uint32_t maxMipLevels = 5;
-    for (uint32_t mip = 0; mip < maxMipLevels; ++mip)
-    {
-        // reisze framebuffer according to mip-level size.
-        uint32_t mipWidth = static_cast<uint32_t>(128 * std::pow(0.5, mip));
-        uint32_t mipHeight = static_cast<uint32_t>(128 * std::pow(0.5, mip));
-        glBindRenderbuffer(GL_RENDERBUFFER, pbrBuilder.CuptureRBO());
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
-        glViewport(0, 0, mipWidth, mipHeight);
-
-        float roughness = (float)mip / (float)(maxMipLevels - 1);
-        pbrBuilder.Shader().PrefilterShader()->setFloat("roughness", roughness);
-        for (uint32_t i = 0; i < 6; ++i)
-        {
-            pbrBuilder.Shader().PrefilterShader()->setMat4("view", pbrBuilder.CaptureViews()[i]);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
-
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            glBindVertexArray(cubeVertices.VAO());
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-            glBindVertexArray(0);
-        }
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // pbr: generate a 2D LUT from the BRDF equations used.
-    // ----------------------------------------------------
-    uint32_t brdfLUTTexture;
-    glGenTextures(1, &brdfLUTTexture);
-
-    // pre-allocate enough memory for the LUT texture.
-    glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, renderBufferSize, renderBufferSize, 0, GL_RG, GL_FLOAT, 0);
-    // be sure to set wrapping mode to GL_CLAMP_TO_EDGE
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // then re-configure capture framebuffer object and render screen-space quad with BRDF shader.
-    glBindFramebuffer(GL_FRAMEBUFFER, pbrBuilder.CuptureFBO());
-    glBindRenderbuffer(GL_RENDERBUFFER, pbrBuilder.CuptureRBO());
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, renderBufferSize, renderBufferSize);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture, 0);
-
-    glViewport(0, 0, renderBufferSize, renderBufferSize);
-    pbrBuilder.Shader().BRDFShader()->Use();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glBindVertexArray(quadVertices.VAO());
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    glBindVertexArray(0);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // initialize static shader uniforms before rendering
-    // --------------------------------------------------
-    glm::mat4 projection = glm::perspective(camera.Zoom(), (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
-    pbrBuilder.Shader().MainShader()->Use();
-    pbrBuilder.Shader().MainShader()->setMat4("projection", projection);
-    pbrBuilder.Shader().BackShader()->Use();
-    pbrBuilder.Shader().BackShader()->setInt("environmentMap", 0);
-    pbrBuilder.Shader().BackShader()->setMat4("projection", projection);
+    pbrBuilder.initCuptureBuffer();
+    pbrBuilder.setCubeVAO(cubeVertices.VAO());
+    pbrBuilder.convertEtoC(hdrTexture);
+    pbrBuilder.setProjection(glm::perspective(camera.Zoom(), (float)screenWidth / (float)screenHeight, 0.1f, 100.0f));
 
     // then before rendering, configure the viewport to the original framebuffer's screen dimensions
     int scrWidth, scrHeight;
@@ -299,128 +182,38 @@ int main()
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 model = glm::mat4(1.0f);
-        pbrBuilder.Shader().MainShader()->Use();
-        pbrBuilder.Shader().MainShader()->setMat4("view", view);
-        pbrBuilder.Shader().MainShader()->setVec3("camPos", camera.Position());
-
-        // bind pre-computed IBL data
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
-
-        // rusted iron
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, ironMap.albedo);
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, ironMap.normal);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, ironMap.metallic);
-        glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, ironMap.roughness);
-        glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, ironMap.ao);
-
+        glm::mat4 view = camera.GetViewMatrix();
+        pbrBuilder.initMainShadersEnvs( view, camera.Position());
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-5.0, 0.0, 2.0));
-        pbrBuilder.Shader().MainShader()->setMat4("model", model);
-        glm::mat3 normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        pbrBuilder.Shader().MainShader()->setMat3("normalMatrix", normalMatrix);
-        glBindVertexArray(sphereVertices.VAO());
-        glDrawElements(GL_TRIANGLE_STRIP, sphereVertices.Indices().size(), GL_UNSIGNED_INT, 0);
-
-        // gold
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, goldMap.albedo);
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, goldMap.normal);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, goldMap.metallic);
-        glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, goldMap.roughness);
-        glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, goldMap.ao);
+        pbrBuilder.drawSphere(ironMap, sphereVertices, model);
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-3.0, 0.0, 2.0));
-        pbrBuilder.Shader().MainShader()->setMat4("model", model);
-        normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        pbrBuilder.Shader().MainShader()->setMat3("normalMatrix", normalMatrix);
-        glBindVertexArray(sphereVertices.VAO());
-        glDrawElements(GL_TRIANGLE_STRIP, sphereVertices.Indices().size(), GL_UNSIGNED_INT, 0);
-
-        // grass
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, grassMap.albedo);
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, grassMap.normal);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, grassMap.metallic);
-        glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, grassMap.roughness);
-        glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, grassMap.ao);
+        pbrBuilder.drawSphere(goldMap, sphereVertices, model);
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-1.0, 0.0, 2.0));
-        pbrBuilder.Shader().MainShader()->setMat4("model", model);
-        normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        pbrBuilder.Shader().MainShader()->setMat3("normalMatrix", normalMatrix);
-        glBindVertexArray(sphereVertices.VAO());
-        glDrawElements(GL_TRIANGLE_STRIP, sphereVertices.Indices().size(), GL_UNSIGNED_INT, 0);
-
-        // marble
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, marbleMap.albedo);
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, marbleMap.normal);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, marbleMap.metallic);
-        glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, marbleMap.roughness);
-        glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, marbleMap.ao);
+        pbrBuilder.drawSphere(grassMap, sphereVertices, model);
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(1.0, 0.0, 2.0));
-        pbrBuilder.Shader().MainShader()->setMat4("model", model);
-        normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        pbrBuilder.Shader().MainShader()->setMat3("normalMatrix", normalMatrix);
-        glBindVertexArray(sphereVertices.VAO());
-        glDrawElements(GL_TRIANGLE_STRIP, sphereVertices.Indices().size(), GL_UNSIGNED_INT, 0);
-
-        // wood
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, woodMap.albedo);
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, woodMap.normal);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, woodMap.metallic);
-        glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, woodMap.roughness);
-        glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, woodMap.ao);
+        pbrBuilder.drawSphere(marbleMap, sphereVertices, model);
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(3.0, 0.0, 2.0));
-        pbrBuilder.Shader().MainShader()->setMat4("model", model);
-        normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-        pbrBuilder.Shader().MainShader()->setMat3("normalMatrix", normalMatrix);
-        glBindVertexArray(sphereVertices.VAO());
-        glDrawElements(GL_TRIANGLE_STRIP, sphereVertices.Indices().size(), GL_UNSIGNED_INT, 0);
+        pbrBuilder.drawSphere(woodMap, sphereVertices, model);
 
         // render light source (simply re-render sphere at light positions)
         // this looks a bit off as we use the same shader, but it'll make their positions obvious and 
         // keeps the codeprint small.
+        glm::mat3 normalMatrix;
         for (uint32_t i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); ++i)
         {
             glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
-            newPos = lightPositions[i];
+            //newPos = lightPositions[i];
             std::string str = "lightPositions[" + std::to_string(i) + "]";
             pbrBuilder.Shader().MainShader()->setVec3(str.c_str(), newPos);
             str = "lightColors[" + std::to_string(i) + "]";
@@ -429,32 +222,11 @@ int main()
             model = glm::mat4(1.0f);
             model = glm::translate(model, newPos);
             model = glm::scale(model, glm::vec3(0.5f));
-            pbrBuilder.Shader().MainShader()->setMat4("model", model);
-            normalMatrix  = glm::transpose(glm::inverse(glm::mat3(model)));
-            pbrBuilder.Shader().MainShader()->setMat3("normalMatrix", normalMatrix);
-            glBindVertexArray(sphereVertices.VAO());
-            glDrawElements(GL_TRIANGLE_STRIP, sphereVertices.Indices().size(), GL_UNSIGNED_INT, 0);
+            pbrBuilder.drawSphere(woodMap, sphereVertices, model);
         }
 
-        // render skybox (render as last to prevent overdraw)
-        pbrBuilder.Shader().BackShader()->Use();
-        pbrBuilder.Shader().BackShader()->setMat4("view", view);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
-        //glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap); // display irradiance map
-        //glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap); // display prefilter map
-
-        glBindVertexArray(cubeVertices.VAO());
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
-
-        /*equirectangularToCubemapShader->Use();
-        equirectangularToCubemapShader->setMat4("view", view);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, hdrTexture);
-        glBindVertexArray(cubeVertices.VAO());
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);*/
+        pbrBuilder.renderSkybox(view);
+        //pbrBuilder.renderEtoC(view);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------

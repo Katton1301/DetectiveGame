@@ -139,7 +139,7 @@ uint32_t TSphereVertices::R() const
     return m_radius;
 }
 
-std::vector<uint32_t> const & TSphereVertices::Indices()
+std::vector<uint32_t> const & TSphereVertices::Indices() const
 {
     return m_indices;
 }

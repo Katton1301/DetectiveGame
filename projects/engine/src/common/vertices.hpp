@@ -55,7 +55,7 @@ public:
     TSphereVertices( uint32_t radius );
     ~TSphereVertices() = default;
 
-    std::vector<uint32_t> const & Indices();
+    std::vector<uint32_t> const & Indices() const;
 private:
     uint32_t R() const;
     void Init() override;
