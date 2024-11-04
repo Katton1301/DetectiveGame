@@ -2,42 +2,32 @@
 
 #include <vector>
 
-// GL Includes
-#include <GL/glew.h>
-#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <camera/camera_interface.hpp>
 
-enum TCameraMovement
-{
-    FORWARD,
-    BACKWARD,
-    LEFT,
-    RIGHT
-};
-
-class TCamera
+class TCamera : public ICamera
 {
 public:
     TCamera(glm::vec3 position, glm::vec3 up, GLfloat yaw , GLfloat pitch);
     TCamera(GLfloat posX, GLfloat posY, GLfloat posZ, GLfloat upX, GLfloat upY, GLfloat upZ, GLfloat yaw, GLfloat pitch);
     TCamera(glm::vec3 position);
     TCamera();
-    glm::mat4 GetViewMatrix();
-    void ProcessKeyboard(TCameraMovement direction, GLfloat deltaTime);
-    void ProcessMouseMovement(GLfloat xoffset, GLfloat yoffset, GLboolean constrainPitch = true);
-    void ProcessMouseScroll(GLfloat yoffset);
+    glm::mat4 GetViewMatrix() override;
+    void ProcessKeyboard(TCameraMovement direction, GLfloat deltaTime) override;
+    void ProcessMouseMovement(GLfloat xoffset, GLfloat yoffset, GLboolean constrainPitch = true) override;
+    void ProcessMouseScroll(GLfloat yoffset) override;
 
-    GLfloat Zoom() const
+    GLfloat Zoom() const override
     {
         return m_zoom;
     }
 
-    glm::vec3 const & Position() const
+    glm::vec3 const & Position() const override
     {
         return m_position;
     }
 
-    glm::vec3 const & Front() const
+    glm::vec3 const & Front() const override
     {
         return m_front;
     }
