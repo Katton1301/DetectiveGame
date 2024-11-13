@@ -15,6 +15,8 @@ public:
     ~TWindowController() = default;
     void init() override;
     void play() override;
+    uint32_t Width() const override;
+    uint32_t Height() const override;
     void setDrawFunc( std::function< void() > const & _drawFunc );
 
     void setCamera( std::shared_ptr< ICamera > && _camera );
@@ -32,4 +34,6 @@ private:
     std::shared_ptr< ICamera > m_camera = nullptr;
     std::function< void() > m_drawFunc{};
     GLFWwindow* m_window = nullptr;
+    uint32_t m_width = 0;
+    uint32_t m_height = 0;
 };

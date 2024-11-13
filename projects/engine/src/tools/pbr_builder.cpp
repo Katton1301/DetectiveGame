@@ -187,6 +187,15 @@ void TPBRBuilder::setProjection( glm::mat4 const & _projection )
     Shader().BackShader()->setMat4("projection", _projection);
 }
 
+void TPBRBuilder::setMinBufferSize(uint32_t minBufferSize )
+{
+    m_minBufferSize = minBufferSize;
+}
+
+void TPBRBuilder::setFrameBufferSize(uint32_t frameBufferSize )
+{
+    m_frameBufferSize = frameBufferSize;
+}
 
 void TPBRBuilder::initMainShadersEnvs( glm::mat4 const & _view, glm::vec3 const & _camPos )
 {

@@ -31,7 +31,9 @@ void RegisterCamera(GLFWwindow* window, std::shared_ptr< ICamera > & _camera)
 
 TWindowController::TWindowController(uint32_t _width, uint32_t _height, std::string const & windowName)
 {
-    m_window = glfwCreateWindow(_width, _height, windowName.c_str(), nullptr, nullptr);
+    m_width = _width;
+    m_height = _height;
+    m_window = glfwCreateWindow(Width(), Height(), windowName.c_str(), nullptr, nullptr);
 
     if (ptrWindow() == nullptr)
     {
@@ -131,6 +133,16 @@ void TWindowController::play()
         glfwPollEvents();
     }
     glfwTerminate();
+}
+
+uint32_t TWindowController::Width() const
+{
+    return m_width;
+}
+
+uint32_t TWindowController::Height() const
+{
+    return m_height;
 }
 
 void TWindowController::setDrawFunc( std::function< void() > const & _drawFunc )
