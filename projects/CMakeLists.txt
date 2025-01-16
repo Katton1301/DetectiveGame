@@ -12,17 +12,14 @@ set(CMAKE_INSTALL_LIBDIR "lib" )
 set(CMAKE_INSTALL_BINDIR "${CMAKE_SOURCE_DIR}/_binaries" )
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 
-add_subdirectory("$ENV{OPENGL_DIR}/glew-2.1.0/" glew)
+add_subdirectory("$ENV{OPENGL_DIR}/glew-2.1.0/build/cmake" glew)
+add_subdirectory("$ENV{OPENGL_DIR}/assimp" assimp)
 
 link_directories("$ENV{OPENGL_DIR}/lib")
 
 
-set(static_libraries glew "libglfw3.a")
-set(dynamic_libraries "libassimp-5.dll")
-#make_libraries_names(static_libraries "${static_libraries}")
+set(static_libraries glew assimp "libglfw3.a")
 message(STATUS "static_libraries: ${static_libraries}")
-#make_libraries_names(dynamic_libraries "${dynamic_libraries}")
-message(STATUS "dynamic_libraries: ${dynamic_libraries}")
 add_compile_options(-Wall -Wextra -Wreturn-type -Wunused -Wno-terminate)
 
 get_property(include_dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
@@ -46,7 +43,6 @@ function(create_target_engine LIST_DIR)
         ${ENGINE_TARGET_NAME}
         STATIC ${sources}
     )
-    target_link_libraries(${ENGINE_TARGET_NAME} ${dynamic_libraries})
     target_link_libraries(${ENGINE_TARGET_NAME} ${static_libraries})
     target_include_directories(${ENGINE_TARGET_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
     install(TARGETS ${ENGINE_TARGET_NAME} DESTINATION ${CMAKE_INSTALL_LIBDIR})
@@ -70,7 +66,6 @@ function(create_target_sandbox LIST_DIR)
     set(st_libraries "")
     set(st_libraries ${st_libraries} "${ENGINE_TARGET_NAME}")
     target_link_libraries(${SANDBOX_TARGET_NAME} ${static_libraries})
-    target_link_libraries(${SANDBOX_TARGET_NAME} ${dynamic_libraries})
     target_link_libraries(${SANDBOX_TARGET_NAME} ${st_libraries})
     set_target_properties(${SANDBOX_TARGET_NAME} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
