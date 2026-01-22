@@ -1,12 +1,12 @@
 #pragma once
-#include<windows/window_controller_interface.hpp>
-#include"camera/camera.hpp"
-#include<GLFW/glfw3.h>
-#include<inttypes.h>
-#include<string>
-#include<memory>
-#include<functional>
-#include<map>
+#include <windows/window_controller_interface.hpp>
+#include <camera/camera.hpp>
+#include <GLFW/glfw3.h>
+#include <inttypes.h>
+#include <string>
+#include <memory>
+#include <functional>
+#include <map>
 
 class TWindowController : public IWindow
 {

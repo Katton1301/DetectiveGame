@@ -50,7 +50,7 @@ uint32_t TTextureBuilder::MakeTexture(std::string const & path, std::string cons
     stbi_set_flip_vertically_on_load(true);
     int width, height;
     int nrComponents;
-    unsigned char *data = stbi_load((path + "/" + filename).c_str(), &width, &height, &nrComponents, 0);
+    float *data = stbi_loadf((path + "/" + filename).c_str(), &width, &height, &nrComponents, 0);
     if (data)
     {
         GLenum format = 3;
@@ -63,7 +63,8 @@ uint32_t TTextureBuilder::MakeTexture(std::string const & path, std::string cons
 
         glGenTextures(1, &id);
         glBindTexture(GL_TEXTURE_2D, id);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data); // note how we specify the texture's data value to be float
+
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_FLOAT, data); // note how we specify the texture's data value to be float
         if(m_mipmapGeneration)
         {
             glGenerateMipmap(GL_TEXTURE_2D);

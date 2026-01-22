@@ -11,7 +11,7 @@ void TPBRBuilder::create()
 {
     // pbr: set up projection and view matrices for capturing data onto the 6 cubemap face directions
     // ----------------------------------------------------------------------------------------------
-    m_captureProjection = glm::perspective(90.0f, 1.0f, 0.1f, 10.0f);
+    m_captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
     m_captureViews =
     {
         glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
@@ -45,7 +45,7 @@ void TPBRBuilder::initCuptureBuffer()
 void TPBRBuilder::convertEtoC( uint32_t hdrTextureId )
 {
     TCubeMapBuilder defaultCubemapBuilder;
-
+    defaultCubemapBuilder.setMinFilter(GL_LINEAR);
     defaultCubemapBuilder.setMipMapGeneration(false);
     m_envCubemap = defaultCubemapBuilder.MakeCubemap(m_frameBufferSize, m_frameBufferSize);
     // pbr: convert HDR equirectangular environment map to cubemap equivalent
@@ -240,8 +240,8 @@ void TPBRBuilder::renderSkybox(glm::mat4 const & _view) const
     Shader().BackShader()->setMat4("view", _view);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, EnvCubemap());
-    //glBindTexture(GL_TEXTURE_CUBE_MAP, pbrBuilder.IrradianceMap()); // display irradiance map
-    //glBindTexture(GL_TEXTURE_CUBE_MAP, pbrBuilder.PrefilterMap()); // display prefilter map
+    //glBindTexture(GL_TEXTURE_CUBE_MAP, IrradianceMap()); // display irradiance map
+    //glBindTexture(GL_TEXTURE_CUBE_MAP, PrefilterMap()); // display prefilter map
 
     glBindVertexArray(m_cubeVAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);

@@ -10,6 +10,7 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 #endif // _WIN32
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
