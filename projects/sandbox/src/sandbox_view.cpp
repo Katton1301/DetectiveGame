@@ -85,8 +85,8 @@ void TSandbox::init()
     defaultTextureBuilder.setMipMapGeneration(false);
     uint32_t hdrTexture = defaultTextureBuilder.MakeTexture("./texture", "newport_loft.hdr");
 
-    //TModel man("./models/man.obj");
-
+    auto cyborg = TModel("./models/cyborg/Cyborg.fbx");
+    m_modelsMap.emplace("Man", cyborg);
 
     m_pbrBuilder->initCuptureBuffer();
     m_pbrBuilder->setCubeVAO(cubeVertices.VAO());
@@ -119,10 +119,12 @@ void TSandbox::init()
             model = glm::translate(model, glm::vec3(3.0, 0.0, 2.0));
             m_pbrBuilder->drawSphere(getTexture("Wood"), *m_sphereVertices, model);
 
+
+            getModel("Man").Draw(*m_pbrBuilder->Shader().MainShader());
+
             // render light source (simply re-render sphere at light positions)
             // this looks a bit off as we use the same shader, but it'll make their positions obvious and
             // keeps the codeprint small.
-            glm::mat3 normalMatrix;
             for (uint32_t i = 0; i < LightsPostions().size(); ++i)
             {
                 glm::vec3 newPos = LightsPostions()[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
@@ -148,6 +150,11 @@ void TSandbox::init()
 PBRTextures const & TSandbox::getTexture(std::string const & _textureName ) const
 {
     return m_texturesMap.at(_textureName);
+}
+
+TModel & TSandbox::getModel(std::string const & _modelName )
+{
+    return m_modelsMap.at(_modelName);
 }
 
 std::vector<glm::vec3> const & TSandbox::LightsPostions() const

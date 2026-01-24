@@ -59,7 +59,7 @@ function(create_target_sandbox LIST_DIR)
             "${LIST_DIR}/*.cpp"
     )
 
-    file(COPY "${CMAKE_CURRENT_LIST_DIR}/bin/texture/" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/texture/")
+    file(COPY "${CMAKE_CURRENT_LIST_DIR}/bin/resources/" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/")
 
     add_executable( ${SANDBOX_TARGET_NAME} ${sources} )
     set(sandbox_libraries "")
