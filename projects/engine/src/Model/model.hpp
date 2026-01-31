@@ -12,7 +12,6 @@ class TModel
     public:
         /*  Constructors   */
         TModel() = default;
-        TModel(const char *path);
         TModel(std::string const & path);
 
         /*  Copy Semantics (Rule of 5)   */
@@ -20,7 +19,7 @@ class TModel
         TModel& operator=(const TModel& other);
         TModel(TModel&& other) noexcept;
         TModel& operator=(TModel&& other) noexcept;
-        ~TModel();
+        virtual ~TModel();
 
         /*  Public Methods   */
         bool Load(const std::string& path);
@@ -32,7 +31,7 @@ class TModel
         std::vector<STexture>& TextureLoaded();
         const std::vector<STexture>& TextureLoaded() const;
         const std::string& GetDirectory() const;
-        bool IsLoaded() const;
+        virtual bool IsLoaded() const;
 
         /*  FBX Specific Features   */
         bool HasAnimations() const;

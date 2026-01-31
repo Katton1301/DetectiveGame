@@ -36,3 +36,19 @@ HShader createCustomShader( std::string const & vertexPath, std::string const & 
     }
     return customShader;
 }
+
+HShader createSimpleModelShader()
+{
+    static HShader simpleShader = nullptr;
+
+    if (!simpleShader)
+    {
+        simpleShader = new TShader(
+            #include"core/simple_model_shader.vs"
+            ,
+            #include"core/simple_model_shader.frag"
+        );
+    }
+
+    return simpleShader;
+}

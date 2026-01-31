@@ -3,6 +3,7 @@
 #include <camera/camera_factory.hpp>
 #include "common/vertices.hpp"
 #include "model/model.hpp"
+#include <shaders/shader_operations.hpp>
 #include <filesystem>
 #include <iostream>
 #include <map>
@@ -33,7 +34,8 @@ void TSandbox::createWindow( uint32_t width, uint32_t height )
 
 void TSandbox::init()
 {
-    m_windowController->setCamera(createCamera(TCameraType::DEFAULT_CAMERA, glm::vec3(0.0f, 0.0f, 3.0f)));
+    GLfloat windowRatio = static_cast<GLfloat>(cptrWindowController()->Width()) / cptrWindowController()->Height();
+    m_windowController->setCamera(createCamera(TCameraType::DEFAULT_CAMERA, glm::vec3(0.0f, 0.0f, 3.0f), windowRatio));
     m_windowController->init();
 
     glEnable(GL_DEPTH_TEST);
@@ -43,18 +45,11 @@ void TSandbox::init()
 
     // lights
     // ------
-    m_lightPositions = {
-        glm::vec3(-10.0f,  10.0f, 10.0f),
-        glm::vec3( 10.0f,  10.0f, 10.0f),
-        glm::vec3(-10.0f, -10.0f, 10.0f),
-        glm::vec3( 10.0f, -10.0f, 10.0f),
-    };
-    m_lightColors = {
-        glm::vec3(300.0f, 300.0f, 300.0f),
-        glm::vec3(300.0f, 300.0f, 300.0f),
-        glm::vec3(300.0f, 300.0f, 300.0f),
-        glm::vec3(300.0f, 300.0f, 300.0f)
-    };
+    m_scene = std::make_shared<TScene>();
+    m_scene->addLight(TLight(glm::vec3(-10.0f,  10.0f, 10.0f),glm::vec3(300.0f, 300.0f, 300.0f)));
+    m_scene->addLight(TLight(glm::vec3( 10.0f,  10.0f, 10.0f),glm::vec3(300.0f, 300.0f, 300.0f)));
+    m_scene->addLight(TLight(glm::vec3(-10.0f, -10.0f, 10.0f),glm::vec3(300.0f, 300.0f, 300.0f)));
+    m_scene->addLight(TLight(glm::vec3( 10.0f, -10.0f, 10.0f),glm::vec3(300.0f, 300.0f, 300.0f)));
 
     TTextureBuilder defaultTextureBuilder;
     // load PBR material textures
@@ -85,13 +80,23 @@ void TSandbox::init()
     defaultTextureBuilder.setMipMapGeneration(false);
     uint32_t hdrTexture = defaultTextureBuilder.MakeTexture("./texture", "newport_loft.hdr");
 
-    auto cyborg = TModel("./models/cyborg/Cyborg.fbx");
-    m_modelsMap.emplace("Man", cyborg);
-
     m_pbrBuilder->initCuptureBuffer();
     m_pbrBuilder->setCubeVAO(cubeVertices.VAO());
     m_pbrBuilder->convertEtoC(hdrTexture);
-    m_pbrBuilder->setProjection(glm::perspective(cptrWindowController()->Camera()->Zoom(), (float)cptrWindowController()->Width() / (float)cptrWindowController()->Height(), 0.1f, 100.0f));
+    m_pbrBuilder->setProjection(*cptrWindowController()->Camera()->ProjectionCptr());
+
+    TSceneModel cyborg = TSceneModel("./models/cyborg/Cyborg.fbx");
+
+    // Set up transformation matrices for cyborg
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f)); // Position the cyborg
+    model = glm::scale(model, glm::vec3(0.1f)); // Scale it down
+    cyborg.setModelMatrix(model);
+    cyborg.setPojectionMatrixCptr(cptrWindowController()->Camera()->ProjectionCptr());
+    cyborg.setShader(createSimpleModelShader());
+    cyborg.setScene(m_scene);
+    m_modelsMap.emplace("Man", cyborg);
+
     m_windowController->setDrawFunc(
         [this]()
         {
@@ -99,6 +104,7 @@ void TSandbox::init()
             glm::mat4 view = cptrWindowController()->Camera()->GetViewMatrix();
             m_pbrBuilder->initMainShadersEnvs( view, cptrWindowController()->Camera()->Position());
 
+            m_pbrBuilder->Shader().MainShader()->Use();
             model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(-5.0, 0.0, 2.0));
             m_pbrBuilder->drawSphere(getTexture("Iron"), *m_sphereVertices, model);
@@ -119,23 +125,33 @@ void TSandbox::init()
             model = glm::translate(model, glm::vec3(3.0, 0.0, 2.0));
             m_pbrBuilder->drawSphere(getTexture("Wood"), *m_sphereVertices, model);
 
+            // Draw the cyborg model
+            TSceneModel& cyborgModel = getModel("Man");
+            cyborgModel.Update(view, cptrWindowController()->Camera()->Position());
 
-            getModel("Man").Draw(*m_pbrBuilder->Shader().MainShader());
+            if (cyborgModel.IsLoaded())
+            {
+                cyborgModel.Draw();
+            }
+            else
+            {
+                std::cout << "Warning: Cyborg model not loaded properly" << std::endl;
+            }
 
             // render light source (simply re-render sphere at light positions)
             // this looks a bit off as we use the same shader, but it'll make their positions obvious and
             // keeps the codeprint small.
-            for (uint32_t i = 0; i < LightsPostions().size(); ++i)
+            m_pbrBuilder->Shader().MainShader()->Use();
+            for (uint32_t i = 0; i < Scene()->Lights().size(); ++i)
             {
-                glm::vec3 newPos = LightsPostions()[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
-                //newPos = lightPositions[i];
+                m_scene->moveLight(i, glm::vec3(sin(glfwGetTime()), 0.0, 0.0));
                 std::string str = "lightPositions[" + std::to_string(i) + "]";
-                m_pbrBuilder->Shader().MainShader()->setVec3(str.c_str(), newPos);
+                m_pbrBuilder->Shader().MainShader()->setVec3(str.c_str(), Scene()->Lights().at(i).Position());
                 str = "lightColors[" + std::to_string(i) + "]";
-                m_pbrBuilder->Shader().MainShader()->setVec3(str.c_str(), LightsColors()[i]);
+                m_pbrBuilder->Shader().MainShader()->setVec3(str.c_str(), Scene()->Lights().at(i).Color());
 
                 model = glm::mat4(1.0f);
-                model = glm::translate(model, newPos);
+                model = glm::translate(model, Scene()->Lights().at(i).Position());
                 model = glm::scale(model, glm::vec3(0.5f));
                 m_pbrBuilder->drawSphere(getTexture("Wood"), *m_sphereVertices, model);
             }
@@ -152,19 +168,9 @@ PBRTextures const & TSandbox::getTexture(std::string const & _textureName ) cons
     return m_texturesMap.at(_textureName);
 }
 
-TModel & TSandbox::getModel(std::string const & _modelName )
+TSceneModel & TSandbox::getModel(std::string const & _modelName )
 {
     return m_modelsMap.at(_modelName);
-}
-
-std::vector<glm::vec3> const & TSandbox::LightsPostions() const
-{
-    return m_lightPositions;
-}
-
-std::vector<glm::vec3> const & TSandbox::LightsColors() const
-{
-    return m_lightColors;
 }
 
 void TSandbox::start()

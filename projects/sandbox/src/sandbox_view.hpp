@@ -2,7 +2,8 @@
 #include <windows/window_controller.hpp>
 #include <tools/pbr_builder.hpp>
 #include <textures/texture.hpp>
-#include <model/model.hpp>
+#include <model/scene_model.hpp>
+#include <scene/scene.hpp>
 
 class TSandbox
 {
@@ -16,20 +17,16 @@ public:
 
 private: //methods
     std::unique_ptr<TWindowController> const & cptrWindowController();
-    std::vector<glm::vec3> const & LightsPostions() const;
-    std::vector<glm::vec3> const & LightsColors() const;
+    std::shared_ptr<TScene> const & Scene( ) const { return m_scene; }
     PBRTextures const & getTexture(std::string const & _textureName ) const;
-    TModel & getModel(std::string const & _modelName );
-
-
+    TSceneModel & getModel(std::string const & _modelName );
 
 
 private: //attributes
     std::unique_ptr<TWindowController> m_windowController = nullptr;
     std::shared_ptr<TPBRBuilder> m_pbrBuilder;
     std::map< std::string, PBRTextures > m_texturesMap{};
-    std::map< std::string, TModel > m_modelsMap{};
+    std::map< std::string, TSceneModel > m_modelsMap{};
     std::shared_ptr<TSphereVertices> m_sphereVertices;
-    std::vector<glm::vec3> m_lightPositions{};
-    std::vector<glm::vec3> m_lightColors{};
+    std::shared_ptr<TScene> m_scene{};
 };

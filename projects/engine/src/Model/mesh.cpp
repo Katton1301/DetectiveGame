@@ -54,7 +54,7 @@ void TMesh::Draw(TShader & shader)
             ss << specularNr++; // передаем unsigned int в stream
         number = ss.str();
 
-        shader.setFloat(("material." + name + number).c_str(), i);
+        shader.setInt(("material_" + name + number).c_str(), i);
         glBindTexture(GL_TEXTURE_2D, m_textures[i].id);
     }
     glActiveTexture(GL_TEXTURE0);

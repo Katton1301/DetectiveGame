@@ -14,12 +14,6 @@ GLuint TextureFromFile(const char* filename, std::string path)
     return texture;
 }
 
-
-TModel::TModel(const char *path)
-{
-    Load(path);
-}
-
 TModel::TModel(std::string const & path)
 {
     Load(path);
