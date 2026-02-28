@@ -3,7 +3,7 @@
 #include <memory>
 #include <scene/scene_interface.hpp>
 
-class TSceneModel : private TModel
+class TSceneModel : public TModel
 {
 public:
     TSceneModel();

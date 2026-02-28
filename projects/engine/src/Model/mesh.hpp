@@ -33,6 +33,21 @@ class TMesh
         /*  Functions  */
         TMesh(std::vector<TVertex> vertices, std::vector<uint32_t> indices, std::vector<STexture> textures);
         void Draw(TShader & shader);
+
+        void AddTexture(STexture const & texture)
+        {
+            m_textures.push_back(texture);
+        }
+
+        void ClearTextures()
+        {
+            m_textures.clear();
+        }
+
+        const std::vector<STexture>& GetTextures() const {
+            return m_textures;
+        }
+
         uint32_t getVAO() const
         {
             return VAO;

@@ -423,39 +423,57 @@ const TSubject* TModel::GetSubject(const std::string& name) const {
     return nullptr; // Not found
 }
 
-bool TModel::AssignTextureToCharacter(const std::string& subjectName, const STexture& texture) {
+bool TModel::AssignTextureToSubject(const std::string& subjectName, const STexture& texture, uint32_t i_mesh) {
     for(auto& subject : subjects) {
         if(subject.name == subjectName) {
-            subject.AddTexture(texture);
+            subject.AddTexture(texture, i_mesh);
             return true;
         }
     }
-    return false; // Character not found
+    return false; // Subject not found
 }
 
-bool TModel::AssignTexturesToCharacter(const std::string& subjectName, const std::vector<STexture>& textures) {
+bool TModel::AssignTextureToSubject(const std::string& subjectName, const std::string& file_name, const std::string& type, uint32_t i_mesh)
+{
+    for(auto& subject : subjects) {
+        if(subject.name == subjectName) {
+            auto id = TextureFromFile(file_name.c_str());
+            STexture texture
+            {
+                id,
+                type,
+                file_name
+            };
+            subject.AddTexture(texture, i_mesh);
+            return true;
+        }
+    }
+    return false; // Subject not found
+}
+
+bool TModel::AssignTexturesToSubject(const std::string& subjectName, const std::vector<STexture>& textures, uint32_t i_mesh) {
     for(auto& subject : subjects) {
         if(subject.name == subjectName) {
             for(const auto& texture : textures) {
-                subject.AddTexture(texture);
+                subject.AddTexture(texture, i_mesh);
             }
             return true;
         }
     }
-    return false; // Character not found
+    return false; // Subject not found
 }
 
-bool TModel::ReplaceCharacterTextures(const std::string& subjectName, const std::vector<STexture>& textures) {
+bool TModel::ReplaceSubjectTextures(const std::string& subjectName, const std::vector<STexture>& textures, uint32_t i_mesh) {
     for(auto& subject : subjects) {
         if(subject.name == subjectName) {
-            subject.ClearTextures(); // Clear existing textures
+            subject.ClearTextures(i_mesh); // Clear existing textures
             for(const auto& texture : textures) {
-                subject.AddTexture(texture);
+                subject.AddTexture(texture, i_mesh);
             }
             return true;
         }
     }
-    return false; // Character not found
+    return false; // Subject not found
 }
 
 std::vector<STexture> TModel::loadMaterialTextures(aiMaterial* mat,
@@ -510,7 +528,7 @@ std::string TModel::getFileExtension(const std::string& path) const {
 
 uint32_t TModel::getAssimpFlags(const std::string& extension) const {
     uint32_t flags = aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                         aiProcess_CalcTangentSpace;
+                        aiProcess_CalcTangentSpace;
 
     // Different file formats may need UV flipping
     // OBJ files typically need UVs flipped, while FBX files often don't
