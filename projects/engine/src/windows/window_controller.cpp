@@ -115,12 +115,14 @@ void TWindowController::play()
         if(keybord_kyes[GLFW_KEY_D])
             Camera()->ProcessKeyboard(RIGHT, deltaTime);
         // Команды отрисовки здесь
+        m_camera->HoldView();
 
         // move light position over time
         //lightPos.z = static_cast<float>(sin(glfwGetTime() * 0.5) * 3.0);
 
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
         if(m_drawFunc)
         {

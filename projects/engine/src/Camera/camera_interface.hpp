@@ -15,7 +15,8 @@ enum TCameraMovement
 struct ICamera
 {
     virtual ~ICamera() = default;
-    virtual glm::mat4 GetViewMatrix() = 0;
+    virtual glm::mat4 const & ViewMatrix() = 0;
+    virtual void HoldView() = 0;
     virtual void ProcessKeyboard(TCameraMovement direction, GLfloat deltaTime) = 0;
     virtual void ProcessMouseMovement(GLfloat xoffset, GLfloat yoffset, GLboolean constrainPitch = true) = 0;
     virtual void ProcessMouseScroll(GLfloat yoffset) = 0;

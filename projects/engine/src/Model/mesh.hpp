@@ -7,19 +7,23 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <assimp/Importer.hpp>
-
 
 struct TVertex {
     glm::vec3 Position;
     glm::vec3 Normal;
     glm::vec2 TexCoords;
+    // Bone influences for skeletal animation
+    glm::ivec4 BoneIDs;
+    glm::vec4 Weights;
+    // Constructor with default values
+    TVertex() : Position(0.0f), Normal(0.0f), TexCoords(0.0f),
+              BoneIDs(-1), Weights(0.0f) {}
 };
 
 struct STexture {
     uint32_t id;
     std::string type;
-    aiString  path;
+    std::string path;
 };
 
 class TMesh
@@ -29,7 +33,7 @@ class TMesh
         /*  Functions  */
         TMesh(std::vector<TVertex> vertices, std::vector<uint32_t> indices, std::vector<STexture> textures);
         void Draw(TShader & shader);
-        unsigned int getVAO() const
+        uint32_t getVAO() const
         {
             return VAO;
         }
@@ -39,7 +43,7 @@ class TMesh
         }
     private: //methods
         /*  Render data  */
-        unsigned int VAO, VBO, EBO;
+        uint32_t VAO, VBO, EBO;
         /*  Functions    */
         void setupMesh();
     private: //attributes

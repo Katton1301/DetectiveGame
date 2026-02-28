@@ -1,46 +1,28 @@
-#include "model.hpp"
-#include "textures/texture.hpp"
+#include <model/model.hpp>
+#include <iostream>
 #include <algorithm>
-#include <cctype>
+#include <sstream>
+#include <fstream>
 
-GLuint TextureFromFile(const char* filename, std::string path)
-{
-    TTextureBuilder textureBuilder;
-    textureBuilder.setWrapS(GL_REPEAT);
-    textureBuilder.setWrapT(GL_REPEAT);
-    textureBuilder.setMinFilter(GL_NEAREST);
-    textureBuilder.setMagFilter(GL_NEAREST);
-    GLuint texture = textureBuilder.MakeTexture(path, filename);
-    return texture;
+// TModel Implementation
+TModel::TModel(const std::string& path) {
+    LoadModel(path);
 }
 
-TModel::TModel(std::string const & path)
-{
-    Load(path);
-}
 
 // Copy Constructor
 TModel::TModel(const TModel& other)
-    : m_meshes(other.m_meshes)
-    , m_directory(other.m_directory)
-    , m_textures_loaded(other.m_textures_loaded)
-    , m_scene(nullptr)  // Can't copy Assimp scene
-    , m_importer()
+    : directory(other.directory)
+    , textures_loaded(other.textures_loaded)
+    , subjects(other.subjects)
+    , bones(other.bones)
+    , bone_mapping(other.bone_mapping)
+    , bone_id_mapping(other.bone_id_mapping)
+    , scene(nullptr)  // Can't copy Assimp scene
+    , importer()
     , m_isLoaded(other.m_isLoaded)
-    , m_embeddedTextures()
 {
-    // Note: We can't copy the Assimp scene, so we need to reload if the other model was loaded
-    if (other.m_isLoaded && !other.m_directory.empty())
-    {
-        // This is a shallow copy - the meshes and textures are copied
-        // but the Assimp scene needs to be reloaded if needed
-        // For embedded textures, we'd need to deep copy them
-        for (auto* texData : other.m_embeddedTextures)
-        {
-            // Deep copy embedded textures if needed
-            // This is a simplified approach
-        }
-    }
+    // Note: We can't copy the scene, so we need to reload if the other model was loaded
 }
 
 // Copy Assignment Operator
@@ -48,41 +30,32 @@ TModel& TModel::operator=(const TModel& other)
 {
     if (this != &other)
     {
-        // Clean up existing resources
-        for (auto* texData : m_embeddedTextures)
-        {
-            delete[] texData;
-        }
-        m_embeddedTextures.clear();
-
         // Copy data
-        m_meshes = other.m_meshes;
-        m_directory = other.m_directory;
-        m_textures_loaded = other.m_textures_loaded;
-        m_scene = nullptr;  // Can't copy Assimp scene
+        directory = other.directory;
+        textures_loaded = other.textures_loaded;
+        subjects = other.subjects;
+        bones = other.bones;
+        bone_mapping = other.bone_mapping;
+        bone_id_mapping = other.bone_id_mapping;
+        scene = nullptr;  // Can't copy Assimp scene
         m_isLoaded = other.m_isLoaded;
-
-        // Copy embedded textures
-        for (auto* texData : other.m_embeddedTextures)
-        {
-            // Deep copy if needed
-        }
     }
     return *this;
 }
 
 // Move Constructor
 TModel::TModel(TModel&& other) noexcept
-    : m_meshes(std::move(other.m_meshes))
-    , m_directory(std::move(other.m_directory))
-    , m_textures_loaded(std::move(other.m_textures_loaded))
-    , m_scene(other.m_scene)
-    , m_importer()  // Assimp::Importer cannot be moved, create new one
+    : directory(std::move(other.directory))
+    , textures_loaded(std::move(other.textures_loaded))
+    , subjects(std::move(other.subjects))
+    , bones(std::move(other.bones))
+    , bone_mapping(std::move(other.bone_mapping))
+    , bone_id_mapping(std::move(other.bone_id_mapping))
+    , scene(other.scene)
+    , importer()  // Assimp::Importer cannot be moved, create new one
     , m_isLoaded(other.m_isLoaded)
-    , m_embeddedTextures(std::move(other.m_embeddedTextures))
 {
-    other.m_scene = nullptr;
-    other.m_isLoaded = false;
+    other.scene = nullptr;
 }
 
 // Move Assignment Operator
@@ -90,286 +63,74 @@ TModel& TModel::operator=(TModel&& other) noexcept
 {
     if (this != &other)
     {
-        // Clean up existing resources
-        for (auto* texData : m_embeddedTextures)
-        {
-            delete[] texData;
-        }
-        m_embeddedTextures.clear();
 
         // Move data
-        m_meshes = std::move(other.m_meshes);
-        m_directory = std::move(other.m_directory);
-        m_textures_loaded = std::move(other.m_textures_loaded);
-        m_scene = other.m_scene;
+        directory = std::move(other.directory);
+        textures_loaded = std::move(other.textures_loaded);
+        subjects = std::move(other.subjects);
+        bones = std::move(other.bones);
+        bone_mapping = std::move(other.bone_mapping);
+        bone_id_mapping = std::move(other.bone_id_mapping);
+        scene = other.scene;
         // Assimp::Importer cannot be moved, it will be default constructed
         m_isLoaded = other.m_isLoaded;
-        m_embeddedTextures = std::move(other.m_embeddedTextures);
 
         // Reset moved-from object
-        other.m_scene = nullptr;
+        other.scene = nullptr;
         other.m_isLoaded = false;
     }
     return *this;
 }
 
-// Destructor
-TModel::~TModel()
-{
-    // Clean up embedded textures
-    for (auto* texData : m_embeddedTextures)
-    {
-        delete[] texData;
-    }
-    m_embeddedTextures.clear();
-}
-
-bool TModel::Load(const std::string& path)
-{
-    // Clear previous data
-    m_meshes.clear();
-    m_textures_loaded.clear();
-    m_embeddedTextures.clear();
+void TModel::LoadModel(const std::string& path) {
+    // Clear existing data
+    textures_loaded.clear();
+    subjects.clear();
+    bones.clear();
+    bone_mapping.clear();
+    bone_id_mapping.clear();
     m_isLoaded = false;
 
+    // Get file extension
     std::string extension = getFileExtension(path);
-    unsigned int flags = getAssimpFlags(extension);
+    uint32_t flags = getAssimpFlags(extension);
 
-    m_scene = m_importer.ReadFile(path.c_str(), flags);
+    // Load the scene
+    scene = importer.ReadFile(path, flags);
 
-    if(!m_scene || m_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !m_scene->mRootNode)
-    {
-        std::cout << "ERROR::ASSIMP::" << m_importer.GetErrorString() << std::endl;
-        return false;
+
+    if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        flags |= aiProcess_FlipUVs;
+        scene = importer.ReadFile(path, flags);
     }
 
-    m_directory = path.substr(0, path.find_last_of('/'));
 
-    // Process FBX specific features
-    if (extension == "fbx")
-    {
-        processFBXScene(m_scene);
+    if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        std::cout << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
+        return;
     }
 
-    processNode(m_scene->mRootNode, m_scene);
+    directory = path.substr(0, path.find_last_of('/'));
+
+    // Process the node hierarchy first to set up bone mappings
+    processNodeHierarchy(scene->mRootNode);
+
+    // Process all nodes and their meshes
+    processNode(scene->mRootNode);
     m_isLoaded = true;
-    return true;
 }
 
-bool TModel::loadModel(const std::string& path)
+void TModel::SetupBones(TShader& shader)
 {
-    return Load(path);
-}
+    // Pass bone matrices to shader only if we have bone data
+    if (bones.empty()) return;
 
-void TModel::processNode(aiNode *node, const aiScene *scene)
-{
-    // Process all meshes in the node (if any)
-    for(unsigned int i = 0; i < node->mNumMeshes; i++)
+    shader.Use();
+    for (uint32_t i = 0; i < bones.size(); ++i)
     {
-        aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-        m_meshes.push_back(processMesh(mesh, scene));
+        std::string name = "bones[" + std::to_string(i) + "]";
+        shader.setMat4(name.c_str(), bones[i].final_transform);
     }
-    // Process children nodes recursively
-    for(unsigned int i = 0; i < node->mNumChildren; i++)
-    {
-        processNode(node->mChildren[i], scene);
-    }
-}
-
-TMesh TModel::processMesh(aiMesh *mesh, const aiScene *scene)
-{
-    std::vector<TVertex> vertices;
-    std::vector<uint32_t> indices;
-    std::vector<STexture> textures;
-
-    for(unsigned int i = 0; i < mesh->mNumVertices; i++)
-    {
-        TVertex vertex;
-        // Process vertex positions, normals and texture coordinates
-        glm::vec3 vector;
-        vector.x = mesh->mVertices[i].x;
-        vector.y = mesh->mVertices[i].y;
-        vector.z = mesh->mVertices[i].z;
-        vertex.Position = vector;
-
-        // Handle normals
-        if (mesh->HasNormals())
-        {
-            vector.x = mesh->mNormals[i].x;
-            vector.y = mesh->mNormals[i].y;
-            vector.z = mesh->mNormals[i].z;
-            vertex.Normal = vector;
-        }
-        else
-        {
-            vertex.Normal = glm::vec3(0.0f, 1.0f, 0.0f); // Default normal
-        }
-
-        // Handle texture coordinates
-        if(mesh->mTextureCoords[0] && mesh->mNumUVComponents[0] >= 2)
-        {
-            glm::vec2 vec;
-            vec.x = mesh->mTextureCoords[0][i].x;
-            vec.y = mesh->mTextureCoords[0][i].y;
-            vertex.TexCoords = vec;
-        }
-        else
-        {
-            vertex.TexCoords = glm::vec2(0.0f, 0.0f);
-        }
-        vertices.push_back(vertex);
-    }
-
-    // Process indices
-    for(unsigned int i = 0; i < mesh->mNumFaces; i++)
-    {
-        aiFace face = mesh->mFaces[i];
-        for(unsigned int j = 0; j < face.mNumIndices; j++)
-        {
-            indices.push_back(face.mIndices[j]);
-        }
-    }
-
-    // Process material
-    if (mesh->mMaterialIndex >= 0)
-    {
-        aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
-
-        // Load different texture types
-        std::vector<STexture> diffuseMaps = loadMaterialTextures(material,
-                                            aiTextureType_DIFFUSE, "texture_diffuse");
-        textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-
-        std::vector<STexture> specularMaps = loadMaterialTextures(material,
-                                            aiTextureType_SPECULAR, "texture_specular");
-        textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-
-        std::vector<STexture> normalMaps = loadMaterialTextures(material,
-                                            aiTextureType_NORMALS, "texture_normal");
-        textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
-
-        std::vector<STexture> heightMaps = loadMaterialTextures(material,
-                                            aiTextureType_HEIGHT, "texture_height");
-        textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
-    }
-
-    return TMesh(vertices, indices, textures);
-}
-
-std::vector<STexture> TModel::loadMaterialTextures(aiMaterial *mat, aiTextureType type, const std::string& typeName)
-{
-    std::vector<STexture> textures;
-    for(unsigned int i = 0; i < mat->GetTextureCount(type); i++)
-    {
-        aiString str;
-        mat->GetTexture(type, i, &str);
-        bool skip = false;
-        for(unsigned int j = 0; j < m_textures_loaded.size(); j++)
-        {
-            if(std::strcmp(m_textures_loaded[j].path.C_Str(), str.C_Str()) == 0)
-            {
-                textures.push_back(m_textures_loaded[j]);
-                skip = true;
-                break;
-            }
-        }
-        if(!skip)
-        {   // Load texture if not already loaded
-            STexture texture;
-            texture.id = TextureFromFile(str.C_Str(), m_directory);
-            texture.type = typeName;
-            texture.path = str;
-            textures.push_back(texture);
-            // Add texture to loaded textures list
-            m_textures_loaded.push_back(texture);
-        }
-    }
-    return textures;
-}
-
-// FBX Specific Methods
-void TModel::processFBXScene(const aiScene* scene)
-{
-    // Process embedded textures
-    processEmbeddedTextures(scene);
-
-    // TODO: Process animations, bones, etc.
-}
-
-void TModel::processEmbeddedTextures(const aiScene* scene)
-{
-    // Handle embedded textures in FBX files
-    for (unsigned int i = 0; i < scene->mNumTextures; ++i)
-    {
-        const aiTexture* texture = scene->mTextures[i];
-        if (texture->mHeight == 0) // Compressed texture
-        {
-            // Store compressed texture data
-            unsigned char* data = new unsigned char[texture->mWidth];
-            memcpy(data, texture->pcData, texture->mWidth);
-            m_embeddedTextures.push_back(data);
-        }
-    }
-}
-
-std::vector<STexture> TModel::loadEmbeddedTexture(aiMaterial* mat, aiTextureType type, const std::string& typeName)
-{
-    std::vector<STexture> textures;
-    // Implementation for loading embedded textures
-    // This would handle FBX embedded texture data
-    return textures;
-}
-
-// Helper Methods
-std::string TModel::getFileExtension(const std::string& path) const
-{
-    size_t dotPos = path.find_last_of('.');
-    if (dotPos != std::string::npos)
-    {
-        std::string ext = path.substr(dotPos + 1);
-        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-        return ext;
-    }
-    return "";
-}
-
-unsigned int TModel::getAssimpFlags(const std::string& extension) const
-{
-    unsigned int flags = aiProcess_Triangulate | aiProcess_FlipUVs;
-
-    // Add FBX-specific processing flags
-    if (extension == "fbx")
-    {
-        flags |= aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;
-    }
-
-    return flags;
-}
-
-// Getter Methods
-std::vector<TMesh>& TModel::Meshes()
-{
-    return m_meshes;
-}
-
-const std::vector<TMesh>& TModel::Meshes() const
-{
-    return m_meshes;
-}
-
-std::vector<STexture>& TModel::TextureLoaded()
-{
-    return m_textures_loaded;
-}
-
-const std::vector<STexture>& TModel::TextureLoaded() const
-{
-    return m_textures_loaded;
-}
-
-const std::string& TModel::GetDirectory() const
-{
-    return m_directory;
 }
 
 bool TModel::IsLoaded() const
@@ -377,50 +138,396 @@ bool TModel::IsLoaded() const
     return m_isLoaded;
 }
 
-// FBX Specific Getters
-bool TModel::HasAnimations() const
-{
-    return m_scene && m_scene->mNumAnimations > 0;
+void TModel::processNode(aiNode* node, const glm::mat4& parentTransform) {
+    // Create a transform matrix for this node
+    aiMatrix4x4 aiNodeTransform = node->mTransformation;
+    glm::mat4 nodeTransform = glm::mat4(
+        aiNodeTransform.a1, aiNodeTransform.a2, aiNodeTransform.a3, aiNodeTransform.a4,
+        aiNodeTransform.b1, aiNodeTransform.b2, aiNodeTransform.b3, aiNodeTransform.b4,
+        aiNodeTransform.c1, aiNodeTransform.c2, aiNodeTransform.c3, aiNodeTransform.c4,
+        aiNodeTransform.d1, aiNodeTransform.d2, aiNodeTransform.d3, aiNodeTransform.d4
+    );
+    
+    glm::mat4 globalTransform = parentTransform * nodeTransform;
+
+    // Check if this node has meshes (could be a subject object)
+    if (node->mNumMeshes > 0) {
+        TSubject subject;
+        subject.name = node->mName.C_Str();
+        subject.transform = globalTransform;
+
+        // Process all meshes in this node
+        for(uint32_t i = 0; i < node->mNumMeshes; i++) {
+            aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+            subject.meshes.push_back(processMesh(mesh));
+        }
+
+        // Add this subject object to our collection
+        subjects.push_back(subject);
+
+    } else {
+        // If this node doesn't have meshes, process child nodes directly
+        for(uint32_t i = 0; i < node->mNumChildren; i++) {
+            processNode(node->mChildren[i], globalTransform);
+        }
+    }
 }
 
-unsigned int TModel::GetAnimationCount() const
-{
-    return m_scene ? m_scene->mNumAnimations : 0;
+TMesh TModel::processMesh(aiMesh* mesh) {
+    std::vector<TVertex> vertices;
+    std::vector<uint32_t> indices;
+    std::vector<STexture> textures;
+
+    // Process vertices
+    for(uint32_t i = 0; i < mesh->mNumVertices; i++) {
+        TVertex vertex;
+
+        // Position
+        vertex.Position.x = mesh->mVertices[i].x;
+        vertex.Position.y = mesh->mVertices[i].y;
+        vertex.Position.z = mesh->mVertices[i].z;
+
+        // Normals
+        if(mesh->mNormals) {
+            vertex.Normal.x = mesh->mNormals[i].x;
+            vertex.Normal.y = mesh->mNormals[i].y;
+            vertex.Normal.z = mesh->mNormals[i].z;
+        }
+
+        // Texture coordinates
+        if(mesh->mTextureCoords[0]) {
+            vertex.TexCoords.x = mesh->mTextureCoords[0][i].x;
+            vertex.TexCoords.y = mesh->mTextureCoords[0][i].y;
+        }
+
+        vertices.push_back(vertex);
+    }
+
+    // Process bones and assign to vertices
+    if(mesh->mBones && mesh->mNumBones > 0) {
+        processBones(mesh);
+
+        // Initialize bone IDs and weights
+        for(auto& vertex : vertices) {
+            vertex.BoneIDs = glm::ivec4(-1);
+            vertex.Weights = glm::vec4(0.0f);
+        }
+
+        // Assign bone influences to vertices
+        for(uint32_t boneIndex = 0; boneIndex < mesh->mNumBones; boneIndex++) {
+            aiBone* bone = mesh->mBones[boneIndex];
+
+            // Find the bone in our bone mapping
+            auto it = bone_id_mapping.find(bone->mName.C_Str());
+            if(it != bone_id_mapping.end()) {
+                uint32_t ourBoneIndex = it->second;
+
+                // Assign bone weights to the affected vertices
+                for(uint32_t weightIndex = 0; weightIndex < bone->mNumWeights; weightIndex++) {
+                    aiVertexWeight weight = bone->mWeights[weightIndex];
+                    uint32_t vertexId = weight.mVertexId;
+
+                    if(vertexId < vertices.size()) {
+                        TVertex& vertex = vertices[vertexId];
+
+                        // Find an empty slot for bone assignment
+                        for(int i = 0; i < 4; i++) {
+                            if(vertex.BoneIDs[i] == -1) {
+                                vertex.BoneIDs[i] = ourBoneIndex;
+                                vertex.Weights[i] = weight.mWeight;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Normalize weights so they sum to 1.0
+        for(auto& vertex : vertices) {
+            float totalWeight = vertex.Weights.x + vertex.Weights.y +
+                                vertex.Weights.z + vertex.Weights.w;
+            if(totalWeight > 0.0f) {
+                vertex.Weights /= totalWeight;
+            }
+        }
+    }
+
+    // Process indices
+    for(uint32_t i = 0; i < mesh->mNumFaces; i++) {
+        aiFace face = mesh->mFaces[i];
+        for(uint32_t j = 0; j < face.mNumIndices; j++) {
+            indices.push_back(face.mIndices[j]);
+        }
+    }
+
+    // Process materials and textures
+    aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+    std::vector<STexture> diffuseMaps = loadMaterialTextures(material,
+                                                             aiTextureType_DIFFUSE, "texture_diffuse");
+    textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+
+    std::vector<STexture> specularMaps = loadMaterialTextures(material,
+                                                              aiTextureType_SPECULAR, "texture_specular");
+    textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+
+    std::vector<STexture> normalMaps = loadMaterialTextures(material,
+                                                            aiTextureType_NORMALS, "texture_normal");
+    textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
+
+    std::vector<STexture> heightMaps = loadMaterialTextures(material,
+                                                            aiTextureType_HEIGHT, "texture_height");
+    textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+
+    return TMesh(vertices, indices, textures);
 }
 
-const aiAnimation* TModel::GetAnimation(unsigned int index) const
-{
-    if (m_scene && index < m_scene->mNumAnimations)
-    {
-        return m_scene->mAnimations[index];
+void TModel::processBones(aiMesh* mesh) {
+    for(uint32_t i = 0; i < mesh->mNumBones; i++) {
+        aiBone* bone = mesh->mBones[i];
+        std::string boneName = bone->mName.C_Str();
+
+        // Check if this bone is already in our mapping
+        if(bone_mapping.find(boneName) == bone_mapping.end()) {
+            uint32_t boneIndex = bones.size();
+            bones.emplace_back(TBoneInfo{});
+
+            // Store bone offset matrix (inverse bind pose)
+            aiMatrix4x4 offsetMatrix = bone->mOffsetMatrix;
+            bones[boneIndex].offset_matrix = glm::mat4(
+                offsetMatrix.a1, offsetMatrix.a2, offsetMatrix.a3, offsetMatrix.a4,
+                offsetMatrix.b1, offsetMatrix.b2, offsetMatrix.b3, offsetMatrix.b4,
+                offsetMatrix.c1, offsetMatrix.c2, offsetMatrix.c3, offsetMatrix.c4,
+                offsetMatrix.d1, offsetMatrix.d2, offsetMatrix.d3, offsetMatrix.d4
+                );
+
+            bones[boneIndex].name = boneName;
+
+            // Map bone name to index
+            bone_mapping[boneName] = boneIndex;
+        }
+
+        // Map node name to bone index (for later hierarchy processing)
+        bone_id_mapping[boneName] = bone_mapping[boneName];
+    }
+}
+
+void TModel::processNodeHierarchy(aiNode* node, const glm::mat4& parent_transform) {
+    std::string nodeName = node->mName.C_Str();
+
+    // Convert aiMatrix to glm::mat4
+    aiMatrix4x4 nodeTransform = node->mTransformation;
+    glm::mat4 transform = glm::mat4(
+        nodeTransform.a1, nodeTransform.a2, nodeTransform.a3, nodeTransform.a4,
+        nodeTransform.b1, nodeTransform.b2, nodeTransform.b3, nodeTransform.b4,
+        nodeTransform.c1, nodeTransform.c2, nodeTransform.c3, nodeTransform.c4,
+        nodeTransform.d1, nodeTransform.d2, nodeTransform.d3, nodeTransform.d4
+        );
+
+    glm::mat4 globalTransform = parent_transform * transform;
+
+    // If this node corresponds to a bone, update its transform
+    auto it = bone_id_mapping.find(nodeName);
+    if(it != bone_id_mapping.end()) {
+        uint32_t boneIndex = it->second;
+        bones[boneIndex].final_transform = globalTransform;
+    }
+
+    // Process children
+    for(uint32_t i = 0; i < node->mNumChildren; i++) {
+        processNodeHierarchy(node->mChildren[i], globalTransform);
+    }
+}
+
+void TModel::updateBoneTransforms() {
+    for(size_t i = 0; i < bones.size(); i++) {
+        // For static bind pose rendering, we want the skinning to have no visual effect
+        // This means the final transformation should be such that when applied to vertices
+        // in bind pose, they remain in their original positions
+        //
+        // The skinning equation is:
+        // final_pos = sum(weight_i * (global_transform_i * offset_matrix_i) * bind_pose_vertex_pos)
+        //
+        // For bind pose rendering, we want:
+        // final_pos = bind_pose_vertex_pos
+        //
+        // This is achieved when: global_transform_i * offset_matrix_i = identity
+        // Which means: global_transform_i = inverse(offset_matrix_i)
+        //
+        // So the final transformation should be the inverse of the offset matrix
+        bones[i].final_transform = glm::inverse(bones[i].offset_matrix);
+    }
+}
+
+void TModel::Draw(TShader& shader) {
+    if (!m_isLoaded) return;
+    // Update bone transforms before drawing
+    updateBoneTransforms();
+
+    // Send bone matrices to shader
+    shader.Use();
+    for(uint32_t i = 0; i < bones.size(); i++) {
+        std::string boneName = "bones[" + std::to_string(i) + "]";
+        shader.setMat4(boneName.c_str(), bones[i].final_transform);
+    }
+
+    // Draw all subject objects
+    for(auto& subject : subjects) {
+        for(uint32_t i = 0; i < subject.meshes.size(); i++) {
+            subject.meshes[i].Draw(shader);
+        }
+    }
+}
+
+void TModel::DrawSubject(const std::string& subjectName, TShader& shader) {
+    if (!m_isLoaded) return;
+    
+    // Find the subject object with the given name
+    for(auto& subject : subjects) {
+        if(subject.name == subjectName) {
+            // Update bone transforms before drawing
+            updateBoneTransforms();
+
+            // Send bone matrices to shader
+            shader.Use();
+            for(uint32_t i = 0; i < bones.size(); i++) {
+                std::string boneName = "bones[" + std::to_string(i) + "]";
+                shader.setMat4(boneName.c_str(), bones[i].final_transform);
+            }
+
+            // Draw only the meshes for this specific subject
+            for(uint32_t i = 0; i < subject.meshes.size(); i++) {
+                subject.meshes[i].Draw(shader);
+            }
+            
+            return; // Exit after drawing the requested subject
+        }
+    }
+}
+
+std::vector<std::string> TModel::GetSubjectNames() const {
+    std::vector<std::string> names;
+    for(const auto& subject : subjects) {
+        names.push_back(subject.name);
+    }
+    return names;
+}
+
+const TSubject* TModel::GetSubject(const std::string& name) const {
+    for(const auto& subject : subjects) {
+        if(subject.name == name) {
+            return &subject;
+        }
+    }
+    return nullptr; // Not found
+}
+
+bool TModel::AssignTextureToCharacter(const std::string& subjectName, const STexture& texture) {
+    for(auto& subject : subjects) {
+        if(subject.name == subjectName) {
+            subject.AddTexture(texture);
+            return true;
+        }
+    }
+    return false; // Character not found
+}
+
+bool TModel::AssignTexturesToCharacter(const std::string& subjectName, const std::vector<STexture>& textures) {
+    for(auto& subject : subjects) {
+        if(subject.name == subjectName) {
+            for(const auto& texture : textures) {
+                subject.AddTexture(texture);
+            }
+            return true;
+        }
+    }
+    return false; // Character not found
+}
+
+bool TModel::ReplaceCharacterTextures(const std::string& subjectName, const std::vector<STexture>& textures) {
+    for(auto& subject : subjects) {
+        if(subject.name == subjectName) {
+            subject.ClearTextures(); // Clear existing textures
+            for(const auto& texture : textures) {
+                subject.AddTexture(texture);
+            }
+            return true;
+        }
+    }
+    return false; // Character not found
+}
+
+std::vector<STexture> TModel::loadMaterialTextures(aiMaterial* mat,
+                                                      aiTextureType type,
+                                                      const std::string& typeName) {
+    std::vector<STexture> textures;
+
+    for(uint32_t i = 0; i < mat->GetTextureCount(type); i++) {
+        aiString str;
+        mat->GetTexture(type, i, &str);
+
+        bool skip = false;
+        for(uint32_t j = 0; j < textures_loaded.size(); j++) {
+            if(std::strcmp(textures_loaded[j].path.c_str(), str.C_Str()) == 0) {
+                textures.push_back(textures_loaded[j]);
+                skip = true;
+                break;
+            }
+        }
+
+        if(!skip) {
+            STexture texture;
+            texture.id = TextureFromFile(str.C_Str());
+            texture.type = typeName;
+            texture.path = str.C_Str();
+            textures.push_back(texture);
+            textures_loaded.push_back(texture);
+        }
+    }
+
+    return textures;
+}
+
+uint32_t TModel::TextureFromFile(const char* path) {
+    TTextureBuilder textureBuilder;
+    textureBuilder.setWrapS(GL_REPEAT);
+    textureBuilder.setWrapT(GL_REPEAT);
+    textureBuilder.setMinFilter(GL_LINEAR_MIPMAP_LINEAR);
+    textureBuilder.setMagFilter(GL_LINEAR);
+    return textureBuilder.MakeTexture(directory, path);
+}
+
+std::string TModel::getFileExtension(const std::string& path) const {
+    size_t dotPos = path.find_last_of('.');
+    if(dotPos != std::string::npos) {
+        std::string ext = path.substr(dotPos + 1);
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        return ext;
+    }
+    return "";
+}
+
+uint32_t TModel::getAssimpFlags(const std::string& extension) const {
+    uint32_t flags = aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+                         aiProcess_CalcTangentSpace;
+
+    // Different file formats may need UV flipping
+    // OBJ files typically need UVs flipped, while FBX files often don't
+    if(extension == "obj" || extension == "OBJ") {
+        flags |= aiProcess_FlipUVs;
+    }
+
+    if(extension == "fbx" || extension == "FBX") {
+        flags |= aiProcess_PreTransformVertices;
+    }
+
+    return flags;
+}
+
+const aiAnimation* TModel::GetAnimation(uint32_t index) const {
+    if(scene && index < scene->mNumAnimations) {
+        return scene->mAnimations[index];
     }
     return nullptr;
-}
-
-bool TModel::HasEmbeddedTextures() const
-{
-    return m_scene && m_scene->mNumTextures > 0;
-}
-
-unsigned int TModel::GetMaterialCount() const
-{
-    return m_scene ? m_scene->mNumMaterials : 0;
-}
-
-// Utility Function
-bool IsModelFormatSupported(const std::string& path)
-{
-    Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path.c_str(), 0);
-    return scene != nullptr;
-}
-
-void TModel::Draw(TShader & shader)
-{
-    if (!m_isLoaded) return;
-
-    for(unsigned int i = 0; i < m_meshes.size(); i++)
-    {
-        m_meshes[i].Draw(shader);
-    }
 }

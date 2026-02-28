@@ -46,6 +46,7 @@ void TSandbox::init()
     // lights
     // ------
     m_scene = std::make_shared<TScene>();
+    m_scene->setCameraCptr(m_windowController->Camera());
     m_scene->addLight(TLight(glm::vec3(-10.0f,  10.0f, 10.0f),glm::vec3(300.0f, 300.0f, 300.0f)));
     m_scene->addLight(TLight(glm::vec3( 10.0f,  10.0f, 10.0f),glm::vec3(300.0f, 300.0f, 300.0f)));
     m_scene->addLight(TLight(glm::vec3(-10.0f, -10.0f, 10.0f),glm::vec3(300.0f, 300.0f, 300.0f)));
@@ -83,26 +84,25 @@ void TSandbox::init()
     m_pbrBuilder->initCuptureBuffer();
     m_pbrBuilder->setCubeVAO(cubeVertices.VAO());
     m_pbrBuilder->convertEtoC(hdrTexture);
-    m_pbrBuilder->setProjection(*cptrWindowController()->Camera()->ProjectionCptr());
 
-    TSceneModel cyborg = TSceneModel("./models/cyborg/Cyborg.fbx");
+    TSceneModel testModel = TSceneModel("./models/cyborg/cyborg.fbx");
 
-    // Set up transformation matrices for cyborg
+    // Set up transformation matrices for model
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f)); // Position the cyborg
+    //model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // Position
     model = glm::scale(model, glm::vec3(0.1f)); // Scale it down
-    cyborg.setModelMatrix(model);
-    cyborg.setPojectionMatrixCptr(cptrWindowController()->Camera()->ProjectionCptr());
-    cyborg.setShader(createSimpleModelShader());
-    cyborg.setScene(m_scene);
-    m_modelsMap.emplace("Man", cyborg);
+    testModel.setModelMatrix(model);
+    testModel.setShader(createSimpleModelShader());
+    testModel.setScene(m_scene);
+    m_modelsMap.emplace("test", testModel);
 
     m_windowController->setDrawFunc(
         [this]()
         {
+
             glm::mat4 model = glm::mat4(1.0f);
-            glm::mat4 view = cptrWindowController()->Camera()->GetViewMatrix();
-            m_pbrBuilder->initMainShadersEnvs( view, cptrWindowController()->Camera()->Position());
+            m_pbrBuilder->updateMainShadersCameraMatrix( cptrWindowController()->Camera() );
 
             m_pbrBuilder->Shader().MainShader()->Use();
             model = glm::mat4(1.0f);
@@ -125,17 +125,17 @@ void TSandbox::init()
             model = glm::translate(model, glm::vec3(3.0, 0.0, 2.0));
             m_pbrBuilder->drawSphere(getTexture("Wood"), *m_sphereVertices, model);
 
-            // Draw the cyborg model
-            TSceneModel& cyborgModel = getModel("Man");
-            cyborgModel.Update(view, cptrWindowController()->Camera()->Position());
+            // Draw the model
+            TSceneModel& testModel = getModel("test");
 
-            if (cyborgModel.IsLoaded())
+            if (testModel.IsLoaded())
             {
-                cyborgModel.Draw();
+                testModel.Update();
+                testModel.Draw();
             }
             else
             {
-                std::cout << "Warning: Cyborg model not loaded properly" << std::endl;
+                std::cout << "Warning: model not loaded properly" << std::endl;
             }
 
             // render light source (simply re-render sphere at light positions)
@@ -156,7 +156,7 @@ void TSandbox::init()
                 m_pbrBuilder->drawSphere(getTexture("Wood"), *m_sphereVertices, model);
             }
 
-            m_pbrBuilder->renderSkybox(view);
+            m_pbrBuilder->renderSkybox(cptrWindowController()->Camera()->ViewMatrix());
             //m_pbrBuilder->renderEtoC(view);
         }
     );

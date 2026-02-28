@@ -176,17 +176,6 @@ void TPBRBuilder::convertEtoC( uint32_t hdrTextureId )
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void TPBRBuilder::setProjection( glm::mat4 const & _projection )
-{
-    // initialize static shader uniforms before rendering
-    // --------------------------------------------------
-    Shader().MainShader()->Use();
-    Shader().MainShader()->setMat4("projection", _projection);
-    Shader().BackShader()->Use();
-    Shader().BackShader()->setInt("environmentMap", 0);
-    Shader().BackShader()->setMat4("projection", _projection);
-}
-
 void TPBRBuilder::setMinBufferSize(uint32_t minBufferSize )
 {
     m_minBufferSize = minBufferSize;
@@ -197,11 +186,17 @@ void TPBRBuilder::setFrameBufferSize(uint32_t frameBufferSize )
     m_frameBufferSize = frameBufferSize;
 }
 
-void TPBRBuilder::initMainShadersEnvs( glm::mat4 const & _view, glm::vec3 const & _camPos )
+void TPBRBuilder::updateMainShadersCameraMatrix( std::shared_ptr<ICamera> const & _cameraCptr )
 {
+    // initialize static shader uniforms before rendering
+    // --------------------------------------------------
+    Shader().BackShader()->Use();
+    Shader().BackShader()->setInt("environmentMap", 0);
+    Shader().BackShader()->setMat4("projection", *_cameraCptr->ProjectionCptr());
     Shader().MainShader()->Use();
-    Shader().MainShader()->setMat4("view", _view);
-    Shader().MainShader()->setVec3("camPos", _camPos);
+    Shader().MainShader()->setMat4("projection", *_cameraCptr->ProjectionCptr());
+    Shader().MainShader()->setMat4("view", _cameraCptr->ViewMatrix());
+    Shader().MainShader()->setVec3("camPos", _cameraCptr->Position() );
 
     // bind pre-computed IBL data
     glActiveTexture(GL_TEXTURE0);

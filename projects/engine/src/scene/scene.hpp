@@ -6,6 +6,10 @@ class TScene : public IScene
 public:
     TScene() = default;
     virtual ~TScene() = default;
+    void setCameraCptr( std::shared_ptr<ICamera> const & _cameraCptr )
+    {
+        m_cameraCptr = _cameraCptr;
+    }
     void addLight(  TLight const & _light )
     {
         m_lights.push_back(_light);
@@ -19,9 +23,11 @@ public:
         assert(lightId < m_lights.size());
         m_lights[lightId].Position() += step;
     }
-    std::vector< TLight > const & Lights() const override {return m_lights;}
+    std::vector< TLight > const & Lights() const override { return m_lights; }
+    std::shared_ptr<ICamera> const & Camera() const override { return m_cameraCptr; }
 
 
 private:
-    std::vector< TLight > m_lights;
+    std::vector< TLight > m_lights{};
+    std::shared_ptr<ICamera> m_cameraCptr{};
 };

@@ -9,7 +9,7 @@ uint32_t TCubeMapBuilder::MakeCubemap(uint32_t width, uint32_t height) const
     uint32_t id = 0;
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_CUBE_MAP, id);
-    for (unsigned int i = 0; i < 6; ++i)
+    for (uint32_t i = 0; i < 6; ++i)
     {
         // обратите внимание, что каждая грань использует
         // 16битный формат с плавающей точкой

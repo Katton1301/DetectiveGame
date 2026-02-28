@@ -34,7 +34,8 @@ public:
     );
     TCamera(glm::vec3 position, GLfloat windowRatio);
     TCamera();
-    glm::mat4 GetViewMatrix() override;
+    glm::mat4 const & ViewMatrix() override;
+    void HoldView() override;
     void ProcessKeyboard(TCameraMovement direction, GLfloat deltaTime) override;
     void ProcessMouseMovement(GLfloat xoffset, GLfloat yoffset, GLboolean constrainPitch = true) override;
     void ProcessMouseScroll(GLfloat yoffset) override;
@@ -82,6 +83,8 @@ private:    // Camera Attributes
     GLfloat m_movementSpeed;
     GLfloat m_mouseSensitivity;
     GLfloat m_zoom;
+
+    glm::mat4 m_holdedView;
 
     // Projection for camera
     std::shared_ptr<glm::mat4> m_projectionPtr = nullptr;

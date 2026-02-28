@@ -1,8 +1,9 @@
 #pragma once
-#include"shaders/pbr_shader.hpp"
-#include"textures/texture.hpp"
-#include"common/vertices.hpp"
-#include<vector>
+#include <shaders/pbr_shader.hpp>
+#include <textures/texture.hpp>
+#include <common/vertices.hpp>
+#include <camera/camera.hpp>
+#include <vector>
 
 class TPBRBuilder
 {
@@ -15,10 +16,9 @@ public:
 
     void initCuptureBuffer();
     void convertEtoC(uint32_t hdrTextureId);
-    void setProjection( glm::mat4 const & _projection );
     void setMinBufferSize(uint32_t minBufferSize );
     void setFrameBufferSize(uint32_t frameBufferSize );
-    void initMainShadersEnvs( glm::mat4 const & _view, glm::vec3 const & _camPos );
+    void updateMainShadersCameraMatrix( std::shared_ptr<ICamera> const & _cameraCptr );
 
     void drawSphere( PBRTextures const& _textures, TSphereVertices const & _sphereVertices, glm::mat4 const & _model );
     void renderSkybox(glm::mat4 const & _view) const;

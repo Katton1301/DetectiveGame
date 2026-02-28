@@ -80,12 +80,18 @@ TCamera::TCamera(
     m_visual_range_max = visual_range_max;
     updateCameraVectors();
     m_projectionPtr = std::make_shared<glm::mat4>();
+    m_holdedView = glm::mat4(1.0f);
     recalcProjection();
 }
 
-glm::mat4 TCamera::GetViewMatrix()
+glm::mat4 const & TCamera::ViewMatrix()
 {
-    return glm::lookAt(m_position, m_position + m_front, m_up);
+    return m_holdedView;
+}
+
+void TCamera::HoldView()
+{
+    m_holdedView = glm::lookAt(m_position, m_position + m_front, m_up);
 }
 
 void TCamera::ProcessKeyboard(TCameraMovement direction, GLfloat deltaTime)
