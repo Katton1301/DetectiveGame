@@ -152,7 +152,7 @@ void TWindowController::setDrawFunc( std::function< void() > const & _drawFunc )
     m_drawFunc = _drawFunc;
 }
 
-void TWindowController::setCamera( std::shared_ptr< ICamera > && _camera )
+void TWindowController::setCamera( std::shared_ptr< ICamera > & _camera )
 {
     m_camera = _camera;
     RegisterCamera(ptrWindow(), m_camera);

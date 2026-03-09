@@ -12,6 +12,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <shaders/shader.hpp>
 #include <textures/texture.hpp>
+#include <common/object_interface.hpp>
 
 struct TBoneInfo {
     glm::mat4 offset_matrix;
@@ -22,31 +23,32 @@ struct TBoneInfo {
     TBoneInfo() : offset_matrix(1.0f), final_transform(1.0f), parent_id(-1) {}
 };
 
-// Structure to hold individual subject/node data
-struct TSubject {
+// Structure to hold individual object/node data
+struct TObjectData {
     std::vector<TMesh> meshes;
     std::string name;
     glm::mat4 transform;
 
-    TSubject() : name(""), transform(1.0f) {}
+    TObjectData() : name(""), transform(1.0f) {}
 
-    // Method to add a texture to this subject
+    // Method to add a texture to this object
     void AddTexture(const STexture& texture, uint32_t i_mesh) {
         meshes[i_mesh].AddTexture(texture);
     }
 
-    // Method to clear all textures for this subject
+    // Method to clear all textures for this object
     void ClearTextures(uint32_t i_mesh) {
         meshes[i_mesh].ClearTextures();
     }
 
-    // Method to get subject textures
+    // Method to get object textures
     const std::vector<STexture>& GetTextures(uint32_t i_mesh) const {
         return meshes[i_mesh].GetTextures();
     }
 };
 
-class TModel {
+class TModel
+{
 public:
     TModel() = default;
     explicit TModel(const std::string& path);
@@ -60,23 +62,23 @@ public:
 
     void LoadModel(const std::string& path);
     void Draw(TShader& shader);
-    void DrawSubject(const std::string& subjectName, TShader& shader);
+    void DrawObject(const std::string& objectName, TShader& shader);
 
     // Getters
     const std::vector<STexture>& GetTextures() const { return textures_loaded; }
     const std::vector<TBoneInfo>& GetBones() const { return bones; }
     virtual bool IsLoaded() const;
 
-    // Subject/object management
-    const std::vector<TSubject>& GetSubjects() const { return subjects; }
-    const TSubject* GetSubject(const std::string& name) const;
-    std::vector<std::string> GetSubjectNames() const;
+    // Object/object management
+    const std::vector<TObjectData>& GetObjects() const { return objects; }
+    const TObjectData* GetObject(const std::string& name) const;
+    std::vector<std::string> GetObjectNames() const;
 
-    bool AssignTextureToSubject(const std::string& subjectName, const STexture& texture, uint32_t i_mesh);
-    bool AssignTexturesToSubject(const std::string& subjectName, const std::vector<STexture>& textures, uint32_t i_mesh);
-    bool ReplaceSubjectTextures(const std::string& subjectName, const std::vector<STexture>& textures, uint32_t i_mesh);
+    bool AssignTextureToObject(const std::string& objectName, const STexture& texture, uint32_t i_mesh);
+    bool AssignTexturesToObject(const std::string& objectName, const std::vector<STexture>& textures, uint32_t i_mesh);
+    bool ReplaceObjectTextures(const std::string& objectName, const std::vector<STexture>& textures, uint32_t i_mesh);
 
-    bool AssignTextureToSubject(const std::string& subjectName, const std::string& file_name, const std::string& type, uint32_t i_mesh);
+    bool AssignTextureToObject(const std::string& objectName, const std::string& file_name, const std::string& type, uint32_t i_mesh);
     // Bone/Skeleton methods
     void SetupBones(TShader& shader);
 
@@ -90,8 +92,8 @@ private:
     std::string directory;
     std::vector<STexture> textures_loaded;
 
-    // Subject objects/nodes data
-    std::vector<TSubject> subjects;
+    // Object objects/nodes data
+    std::vector<TObjectData> objects;
 
     // Bone and animation data
     std::vector<TBoneInfo> bones;

@@ -52,3 +52,23 @@ HShader createSimpleModelShader()
 
     return simpleShader;
 }
+
+HShader createMirrorShader()
+{
+    static HShader mirrorShader = nullptr;
+
+    if (!mirrorShader)
+    {
+        mirrorShader = new TShader(
+            #include"core/mirror_shader.vs"
+                        ,
+            #include"core/mirror_shader.frag"
+        );
+    }
+    mirrorShader->setInt("reflectionTexture", 0);
+    mirrorShader->setFloat("metallic", 1.0f);
+    mirrorShader->setFloat("roughness", 0.02f);
+    mirrorShader->setVec3("albedo", glm::vec3(1.0f, 1.0f, 1.0f));
+
+    return mirrorShader;
+}

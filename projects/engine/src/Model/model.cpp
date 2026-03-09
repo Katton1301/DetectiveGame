@@ -14,7 +14,7 @@ TModel::TModel(const std::string& path) {
 TModel::TModel(const TModel& other)
     : directory(other.directory)
     , textures_loaded(other.textures_loaded)
-    , subjects(other.subjects)
+    , objects(other.objects)
     , bones(other.bones)
     , bone_mapping(other.bone_mapping)
     , bone_id_mapping(other.bone_id_mapping)
@@ -33,7 +33,7 @@ TModel& TModel::operator=(const TModel& other)
         // Copy data
         directory = other.directory;
         textures_loaded = other.textures_loaded;
-        subjects = other.subjects;
+        objects = other.objects;
         bones = other.bones;
         bone_mapping = other.bone_mapping;
         bone_id_mapping = other.bone_id_mapping;
@@ -47,7 +47,7 @@ TModel& TModel::operator=(const TModel& other)
 TModel::TModel(TModel&& other) noexcept
     : directory(std::move(other.directory))
     , textures_loaded(std::move(other.textures_loaded))
-    , subjects(std::move(other.subjects))
+    , objects(std::move(other.objects))
     , bones(std::move(other.bones))
     , bone_mapping(std::move(other.bone_mapping))
     , bone_id_mapping(std::move(other.bone_id_mapping))
@@ -67,7 +67,7 @@ TModel& TModel::operator=(TModel&& other) noexcept
         // Move data
         directory = std::move(other.directory);
         textures_loaded = std::move(other.textures_loaded);
-        subjects = std::move(other.subjects);
+        objects = std::move(other.objects);
         bones = std::move(other.bones);
         bone_mapping = std::move(other.bone_mapping);
         bone_id_mapping = std::move(other.bone_id_mapping);
@@ -85,7 +85,7 @@ TModel& TModel::operator=(TModel&& other) noexcept
 void TModel::LoadModel(const std::string& path) {
     // Clear existing data
     textures_loaded.clear();
-    subjects.clear();
+    objects.clear();
     bones.clear();
     bone_mapping.clear();
     bone_id_mapping.clear();
@@ -150,20 +150,20 @@ void TModel::processNode(aiNode* node, const glm::mat4& parentTransform) {
     
     glm::mat4 globalTransform = parentTransform * nodeTransform;
 
-    // Check if this node has meshes (could be a subject object)
+    // Check if this node has meshes (could be a object object)
     if (node->mNumMeshes > 0) {
-        TSubject subject;
-        subject.name = node->mName.C_Str();
-        subject.transform = globalTransform;
+        TObjectData object;
+        object.name = node->mName.C_Str();
+        object.transform = globalTransform;
 
         // Process all meshes in this node
         for(uint32_t i = 0; i < node->mNumMeshes; i++) {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-            subject.meshes.push_back(processMesh(mesh));
+            object.meshes.push_back(processMesh(mesh));
         }
 
-        // Add this subject object to our collection
-        subjects.push_back(subject);
+        // Add this object object to our collection
+        objects.push_back(object);
 
     } else {
         // If this node doesn't have meshes, process child nodes directly
@@ -372,20 +372,20 @@ void TModel::Draw(TShader& shader) {
         shader.setMat4(boneName.c_str(), bones[i].final_transform);
     }
 
-    // Draw all subject objects
-    for(auto& subject : subjects) {
-        for(uint32_t i = 0; i < subject.meshes.size(); i++) {
-            subject.meshes[i].Draw(shader);
+    // Draw all object objects
+    for(auto& object : objects) {
+        for(uint32_t i = 0; i < object.meshes.size(); i++) {
+            object.meshes[i].Draw(shader);
         }
     }
 }
 
-void TModel::DrawSubject(const std::string& subjectName, TShader& shader) {
+void TModel::DrawObject(const std::string& objectName, TShader& shader) {
     if (!m_isLoaded) return;
     
-    // Find the subject object with the given name
-    for(auto& subject : subjects) {
-        if(subject.name == subjectName) {
+    // Find the object object with the given name
+    for(auto& object : objects) {
+        if(object.name == objectName) {
             // Update bone transforms before drawing
             updateBoneTransforms();
 
@@ -396,47 +396,47 @@ void TModel::DrawSubject(const std::string& subjectName, TShader& shader) {
                 shader.setMat4(boneName.c_str(), bones[i].final_transform);
             }
 
-            // Draw only the meshes for this specific subject
-            for(uint32_t i = 0; i < subject.meshes.size(); i++) {
-                subject.meshes[i].Draw(shader);
+            // Draw only the meshes for this specific object
+            for(uint32_t i = 0; i < object.meshes.size(); i++) {
+                object.meshes[i].Draw(shader);
             }
             
-            return; // Exit after drawing the requested subject
+            return; // Exit after drawing the requested object
         }
     }
 }
 
-std::vector<std::string> TModel::GetSubjectNames() const {
+std::vector<std::string> TModel::GetObjectNames() const {
     std::vector<std::string> names;
-    for(const auto& subject : subjects) {
-        names.push_back(subject.name);
+    for(const auto& object : objects) {
+        names.push_back(object.name);
     }
     return names;
 }
 
-const TSubject* TModel::GetSubject(const std::string& name) const {
-    for(const auto& subject : subjects) {
-        if(subject.name == name) {
-            return &subject;
+const TObjectData* TModel::GetObject(const std::string& name) const {
+    for(const auto& object : objects) {
+        if(object.name == name) {
+            return &object;
         }
     }
     return nullptr; // Not found
 }
 
-bool TModel::AssignTextureToSubject(const std::string& subjectName, const STexture& texture, uint32_t i_mesh) {
-    for(auto& subject : subjects) {
-        if(subject.name == subjectName) {
-            subject.AddTexture(texture, i_mesh);
+bool TModel::AssignTextureToObject(const std::string& objectName, const STexture& texture, uint32_t i_mesh) {
+    for(auto& object : objects) {
+        if(object.name == objectName) {
+            object.AddTexture(texture, i_mesh);
             return true;
         }
     }
-    return false; // Subject not found
+    return false; // Object not found
 }
 
-bool TModel::AssignTextureToSubject(const std::string& subjectName, const std::string& file_name, const std::string& type, uint32_t i_mesh)
+bool TModel::AssignTextureToObject(const std::string& objectName, const std::string& file_name, const std::string& type, uint32_t i_mesh)
 {
-    for(auto& subject : subjects) {
-        if(subject.name == subjectName) {
+    for(auto& object : objects) {
+        if(object.name == objectName) {
             auto id = TextureFromFile(file_name.c_str());
             STexture texture
             {
@@ -444,36 +444,36 @@ bool TModel::AssignTextureToSubject(const std::string& subjectName, const std::s
                 type,
                 file_name
             };
-            subject.AddTexture(texture, i_mesh);
+            object.AddTexture(texture, i_mesh);
             return true;
         }
     }
-    return false; // Subject not found
+    return false; // Object not found
 }
 
-bool TModel::AssignTexturesToSubject(const std::string& subjectName, const std::vector<STexture>& textures, uint32_t i_mesh) {
-    for(auto& subject : subjects) {
-        if(subject.name == subjectName) {
+bool TModel::AssignTexturesToObject(const std::string& objectName, const std::vector<STexture>& textures, uint32_t i_mesh) {
+    for(auto& object : objects) {
+        if(object.name == objectName) {
             for(const auto& texture : textures) {
-                subject.AddTexture(texture, i_mesh);
+                object.AddTexture(texture, i_mesh);
             }
             return true;
         }
     }
-    return false; // Subject not found
+    return false; // Object not found
 }
 
-bool TModel::ReplaceSubjectTextures(const std::string& subjectName, const std::vector<STexture>& textures, uint32_t i_mesh) {
-    for(auto& subject : subjects) {
-        if(subject.name == subjectName) {
-            subject.ClearTextures(i_mesh); // Clear existing textures
+bool TModel::ReplaceObjectTextures(const std::string& objectName, const std::vector<STexture>& textures, uint32_t i_mesh) {
+    for(auto& object : objects) {
+        if(object.name == objectName) {
+            object.ClearTextures(i_mesh); // Clear existing textures
             for(const auto& texture : textures) {
-                subject.AddTexture(texture, i_mesh);
+                object.AddTexture(texture, i_mesh);
             }
             return true;
         }
     }
-    return false; // Subject not found
+    return false; // Object not found
 }
 
 std::vector<STexture> TModel::loadMaterialTextures(aiMaterial* mat,

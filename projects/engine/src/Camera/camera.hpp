@@ -58,9 +58,19 @@ public:
         return m_front;
     }
 
-    std::shared_ptr<glm::mat4> const & ProjectionCptr() const
+    glm::vec3 const & Up() const override
+    {
+        return m_up;
+    }
+
+    std::shared_ptr<glm::mat4> const & ProjectionCptr() const override
     {
         return m_projectionPtr;
+    }
+
+    void setViewMatrixForce(glm::mat4 const & _view) override
+    {
+        m_holdedView = _view;
     }
 
 private:

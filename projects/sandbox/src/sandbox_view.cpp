@@ -9,6 +9,7 @@
 #include <map>
 #include <array>
 #include <random>
+#include <model/mirror.hpp>
 
 TSandbox::TSandbox()
 {
@@ -35,7 +36,8 @@ void TSandbox::createWindow( uint32_t width, uint32_t height )
 void TSandbox::init()
 {
     GLfloat windowRatio = static_cast<GLfloat>(cptrWindowController()->Width()) / cptrWindowController()->Height();
-    m_windowController->setCamera(createCamera(TCameraType::DEFAULT_CAMERA, glm::vec3(0.0f, 0.0f, 3.0f), windowRatio));
+    auto camera = createCamera(TCameraType::DEFAULT_CAMERA, glm::vec3(0.0f, 0.0f, 3.0f), windowRatio);
+    m_windowController->setCamera(camera);
     m_windowController->init();
 
     glEnable(GL_DEPTH_TEST);
@@ -72,66 +74,74 @@ void TSandbox::init()
     m_texturesMap.emplace("Wood", woodMap);
 
     m_sphereVertices = std::make_shared<TSphereVertices>(64);
-    TCubeVertices cubeVertices;
-    m_pbrBuilder = std::make_shared<TPBRBuilder>();
+
+    // Initialize mirror
+    m_mirror = std::make_unique<TMirror>(1.0f, 1.0f);  // 2x2 meter mirror
+    m_mirror->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));  // Position it in front of the scene
+    m_mirror->setRotation(glm::vec3(0.0f, 0.0f, 0.0f));    // Rotate to face the scene
+    m_mirror->setShader(createMirrorShader());
+    m_mirror->setScene(m_scene);
+    m_mirror->setCamera(camera);
 
     // pbr: load the HDR environment map
     // ---------------------------------
     defaultTextureBuilder.setMinFilter(GL_LINEAR);
     defaultTextureBuilder.setMipMapGeneration(false);
     uint32_t hdrTexture = defaultTextureBuilder.MakeTexture("./texture", "newport_loft.hdr");
+    m_skyBox = std::make_shared<TSkyBox>();
+    m_skyBox->initCuptureBuffer();
+    m_skyBox->setupHDRTexture(hdrTexture);
 
-    m_pbrBuilder->initCuptureBuffer();
-    m_pbrBuilder->setCubeVAO(cubeVertices.VAO());
-    m_pbrBuilder->convertEtoC(hdrTexture);
+    m_scene->setSkyBoxCptr(m_skyBox);
 
-    TSceneModel testModel = TSceneModel("./models/cyborg/cyborg.fbx");
+    std::shared_ptr<TSceneModel> testModel = std::make_shared<TSceneModel>("./models/cyborg/cyborg.fbx");
 
     // Set up transformation matrices for model
     glm::mat4 model = glm::mat4(1.0f);
     //model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // Position
     model = glm::scale(model, glm::vec3(0.1f)); // Scale it down
-    testModel.setModelMatrix(model);
-    testModel.setShader(createSimpleModelShader());
-    testModel.setScene(m_scene);
+    testModel->setModelMatrix(model);
+    testModel->setShader(createSimpleModelShader());
+    testModel->setScene(m_scene);
     m_modelsMap.emplace("test", testModel);
+
+    m_scene->addSceneObject(testModel);
 
     m_windowController->setDrawFunc(
         [this]()
         {
+            TShaderCollection::Instance().updateCameraMatrix(cptrWindowController()->Camera());
+            m_skyBox->Update();
 
+            TShaderCollection::Instance().MainShader()->Use();
             glm::mat4 model = glm::mat4(1.0f);
-            m_pbrBuilder->updateMainShadersCameraMatrix( cptrWindowController()->Camera() );
-
-            m_pbrBuilder->Shader().MainShader()->Use();
-            model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(-5.0, 0.0, 2.0));
-            m_pbrBuilder->drawSphere(getTexture("Iron"), *m_sphereVertices, model);
+            DrawSphere(getTexture("Iron"), *m_sphereVertices, model);
 
             model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(-3.0, 0.0, 2.0));
-            m_pbrBuilder->drawSphere(getTexture("Gold"), *m_sphereVertices, model);
+            DrawSphere(getTexture("Gold"), *m_sphereVertices, model);
 
             model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(-1.0, 0.0, 2.0));
-            m_pbrBuilder->drawSphere(getTexture("Grass"), *m_sphereVertices, model);
+            DrawSphere(getTexture("Grass"), *m_sphereVertices, model);
 
             model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(1.0, 0.0, 2.0));
-            m_pbrBuilder->drawSphere(getTexture("Marble"), *m_sphereVertices, model);
+            DrawSphere(getTexture("Marble"), *m_sphereVertices, model);
 
             model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(3.0, 0.0, 2.0));
-            m_pbrBuilder->drawSphere(getTexture("Wood"), *m_sphereVertices, model);
+            DrawSphere(getTexture("Wood"), *m_sphereVertices, model);
 
             // Draw the model
-            TSceneModel& testModel = getModel("test");
+            auto &testModel = getModel("test");
 
-            if (testModel.IsLoaded())
+            if (testModel->IsLoaded())
             {
-                testModel.Update();
-                testModel.Draw();
+                testModel->Update();
+                testModel->Draw();
             }
             else
             {
@@ -141,23 +151,28 @@ void TSandbox::init()
             // render light source (simply re-render sphere at light positions)
             // this looks a bit off as we use the same shader, but it'll make their positions obvious and
             // keeps the codeprint small.
-            m_pbrBuilder->Shader().MainShader()->Use();
+            TShaderCollection::Instance().MainShader()->Use();
             for (uint32_t i = 0; i < Scene()->Lights().size(); ++i)
             {
                 m_scene->moveLight(i, glm::vec3(sin(glfwGetTime()), 0.0, 0.0));
                 std::string str = "lightPositions[" + std::to_string(i) + "]";
-                m_pbrBuilder->Shader().MainShader()->setVec3(str.c_str(), Scene()->Lights().at(i).Position());
+                TShaderCollection::Instance().MainShader()->setVec3(str.c_str(), Scene()->Lights().at(i).Position());
                 str = "lightColors[" + std::to_string(i) + "]";
-                m_pbrBuilder->Shader().MainShader()->setVec3(str.c_str(), Scene()->Lights().at(i).Color());
+                TShaderCollection::Instance().MainShader()->setVec3(str.c_str(), Scene()->Lights().at(i).Color());
 
                 model = glm::mat4(1.0f);
                 model = glm::translate(model, Scene()->Lights().at(i).Position());
                 model = glm::scale(model, glm::vec3(0.5f));
-                m_pbrBuilder->drawSphere(getTexture("Wood"), *m_sphereVertices, model);
+                DrawSphere(getTexture("Wood"), *m_sphereVertices, model);
             }
 
-            m_pbrBuilder->renderSkybox(cptrWindowController()->Camera()->ViewMatrix());
-            //m_pbrBuilder->renderEtoC(view);
+            // Render the mirror with reflections
+            m_mirror->renderReflection();
+            m_mirror->Draw();
+
+            m_skyBox->renderSkybox(cptrWindowController()->Camera()->ViewMatrix());
+            //m_skyBox->renderEtoC(view);
+            m_skyBox->Draw();
         }
     );
 
@@ -168,7 +183,7 @@ PBRTextures const & TSandbox::getTexture(std::string const & _textureName ) cons
     return m_texturesMap.at(_textureName);
 }
 
-TSceneModel & TSandbox::getModel(std::string const & _modelName )
+std::shared_ptr<TSceneModel> & TSandbox::getModel(std::string const & _modelName )
 {
     return m_modelsMap.at(_modelName);
 }

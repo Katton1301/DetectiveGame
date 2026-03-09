@@ -25,8 +25,10 @@ struct ICamera
     virtual void setVisualRangeMax(GLfloat _max) = 0;
     virtual GLfloat Zoom() const = 0;
     virtual std::shared_ptr<glm::mat4> const & ProjectionCptr() const = 0;
+    virtual void setViewMatrixForce(glm::mat4 const & _view) = 0;
 
     virtual glm::vec3 const & Position() const = 0;
 
     virtual glm::vec3 const & Front() const = 0;
+    virtual glm::vec3 const & Up() const = 0;
 };

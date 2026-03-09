@@ -141,7 +141,7 @@ void TShader::setMat3( GLchar const *vecName, glm::mat3 const & _mat3 )
     glUniformMatrix3fv(uniformId, 1, GL_FALSE, glm::value_ptr(_mat3));
 }
 
-void TShader::setMat4( GLchar const *vecName, glm::mat4 const & _mat4 )
+void TShader::setMat4( GLchar const *vecName, glm::mat4 const & _mat4 ) const
 {
     GLint uniformId = glGetUniformLocation(Program(), vecName);
     glUniformMatrix4fv(uniformId, 1, GL_FALSE, glm::value_ptr(_mat4));

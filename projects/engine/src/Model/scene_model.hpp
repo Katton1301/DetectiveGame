@@ -2,8 +2,9 @@
 #include <model/model.hpp>
 #include <memory>
 #include <scene/scene_interface.hpp>
+#include <common/scene_object_interface.hpp>
 
-class TSceneModel : public TModel
+class TSceneModel : public TModel, public ISceneObject
 {
 public:
     TSceneModel();
@@ -19,14 +20,14 @@ public:
     void setShader(HShader _shader){m_shader = _shader;}
     void setScene( std::shared_ptr<IScene> const & _sceneCptr ) { m_sceneCptr = _sceneCptr; }
 
-    void Update();
+    void Update() override;
 
-    void Draw();
+    virtual void Draw() override;
     bool IsLoaded() const override { return TModel::IsLoaded(); }
 
-private:
+protected:
     glm::mat4 const & ModelMatrix() const {return m_modelMatrix;}
-    HShader Shader() const {return m_shader;}
+    HShader Shader() const override {return m_shader;}
     std::shared_ptr<IScene> const & SceneCptr() const {return m_sceneCptr;}
 
 

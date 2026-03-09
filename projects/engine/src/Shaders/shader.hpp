@@ -39,7 +39,7 @@ public:
 
     void setMat3( GLchar const *vecName, glm::mat3 const & _mat3 );
 
-    void setMat4( GLchar const *vecName, glm::mat4 const & _mat4 );
+    void setMat4( GLchar const *vecName, glm::mat4 const & _mat4 ) const;
 
     GLuint Program() const
     {

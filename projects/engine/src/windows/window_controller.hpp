@@ -19,7 +19,7 @@ public:
     uint32_t Height() const override;
     void setDrawFunc( std::function< void() > const & _drawFunc );
 
-    void setCamera( std::shared_ptr< ICamera > && _camera );
+    void setCamera( std::shared_ptr< ICamera > & _camera );
 
     std::shared_ptr< ICamera > const & Camera();
     GLFWwindow* ptrWindow();
