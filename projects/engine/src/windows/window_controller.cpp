@@ -6,17 +6,15 @@
 static std::array<bool,1024l> keybord_kyes;
 static GLfloat lastX = 400;
 static GLfloat lastY = 300;
-
-static std::map< GLFWwindow*, std::shared_ptr< ICamera >> & CameraContainer()
+static std::map< GLFWwindow*, std::shared_ptr< TControlledCamera >> & CameraContainer()
 {
-    static std::map< GLFWwindow*, std::shared_ptr< ICamera >> cameraContainer{};
+    static std::map< GLFWwindow*, std::shared_ptr< TControlledCamera >> cameraContainer{};
     return cameraContainer;
 }
-
 static GLfloat deltaTime = 0.0f;	// Время, прошедшее между последним и текущим кадром
 static GLfloat lastFrame = 0.0f;  	// Время вывода последнего кадра
 
-void RegisterCamera(GLFWwindow* window, std::shared_ptr< ICamera > & _camera)
+void RegisterCamera(GLFWwindow* window, std::shared_ptr< TControlledCamera > & _camera)
 {
     if(!CameraContainer().contains(window))
     {
@@ -107,13 +105,13 @@ void TWindowController::play()
         // Проверяем события и вызываем функции обратного вызова.
         // Camera controls
         if(keybord_kyes[GLFW_KEY_W])
-            Camera()->ProcessKeyboard(FORWARD, deltaTime);
+            ptrCamera()->ProcessKeyboard(FORWARD, deltaTime);
         if(keybord_kyes[GLFW_KEY_S])
-            Camera()->ProcessKeyboard(BACKWARD, deltaTime);
+            ptrCamera()->ProcessKeyboard(BACKWARD, deltaTime);
         if(keybord_kyes[GLFW_KEY_A])
-            Camera()->ProcessKeyboard(LEFT, deltaTime);
+            ptrCamera()->ProcessKeyboard(LEFT, deltaTime);
         if(keybord_kyes[GLFW_KEY_D])
-            Camera()->ProcessKeyboard(RIGHT, deltaTime);
+            ptrCamera()->ProcessKeyboard(RIGHT, deltaTime);
         // Команды отрисовки здесь
         m_camera->HoldView();
 
@@ -152,23 +150,21 @@ void TWindowController::setDrawFunc( std::function< void() > const & _drawFunc )
     m_drawFunc = _drawFunc;
 }
 
-void TWindowController::setCamera( std::shared_ptr< ICamera > & _camera )
+void TWindowController::setCamera( std::shared_ptr< TControlledCamera > & _camera )
 {
     m_camera = _camera;
     RegisterCamera(ptrWindow(), m_camera);
 }
 
-std::shared_ptr< ICamera > const & TWindowController::Camera()
+std::shared_ptr< TControlledCamera > const & TWindowController::Camera()
 {
     return m_camera;
 }
 
-
-std::shared_ptr< ICamera > & TWindowController::ptrCamera()
+std::shared_ptr< TControlledCamera > & TWindowController::ptrCamera()
 {
     return m_camera;
 }
-
 
 GLFWwindow* TWindowController::ptrWindow()
 {

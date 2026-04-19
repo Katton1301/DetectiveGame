@@ -115,12 +115,16 @@ void TShader::setVec2(const GLchar* vecName,  glm::vec2 const & _vec2)
     glUniform2f(uniformId, _vec2.x, _vec2.y);
 }
 
-
-
 void TShader::setVec3(const GLchar* vecName,  glm::vec3 const & _vec3)
 {
     GLint uniformId = glGetUniformLocation(Program(), vecName);
     glUniform3f(uniformId, _vec3.x, _vec3.y, _vec3.z);
+}
+
+void TShader::setVec4(const GLchar* vecName,  glm::vec4 const & _vec4)
+{
+    GLint uniformId = glGetUniformLocation(Program(), vecName);
+    glUniform4f(uniformId, _vec4.x, _vec4.y, _vec4.z, _vec4.p);
 }
 
 void TShader::setInt( GLchar const *vecName,  GLuint v)

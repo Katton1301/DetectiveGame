@@ -20,6 +20,7 @@ public:
     void setShader(HShader _shader){m_shader = _shader;}
     void setScene( std::shared_ptr<IScene> const & _sceneCptr ) { m_sceneCptr = _sceneCptr; }
 
+    void Update(std::shared_ptr<ICamera> _camera) override;
     void Update() override;
 
     virtual void Draw() override;

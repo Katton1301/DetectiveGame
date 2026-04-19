@@ -1,6 +1,6 @@
 #pragma once
 #include <common/lights.hpp>
-#include <camera/camera.hpp>
+#include <camera/camera_interface.hpp>
 #include <model/skybox.hpp>
 #include <common/scene_object_interface.hpp>
 #include <vector>

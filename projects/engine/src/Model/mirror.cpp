@@ -1,6 +1,8 @@
 #include "mirror.hpp"
 #include <iostream>
 #include <shaders/shader.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 TMirror::TMirror() : m_width(1.0f), m_height(1.0f),
                      m_position(0.0f, 0.0f, 0.0f), m_rotation(0.0f, 0.0f, 0.0f),
@@ -10,6 +12,7 @@ TMirror::TMirror() : m_width(1.0f), m_height(1.0f),
                      m_shader(nullptr), m_scene(nullptr),
                      m_initialized(false)
 {
+    m_camera = std::make_shared<TStaticCamera>(m_position, static_cast<GLfloat>(m_width) / m_height);
     initMirrorGeometry();
     setupMirrorPlane();
 }
@@ -22,6 +25,7 @@ TMirror::TMirror(float width, float height) : m_width(width), m_height(height),
                                               m_shader(nullptr), m_scene(nullptr),
                                               m_initialized(false)
 {
+    m_camera = std::make_shared<TStaticCamera>(m_position, static_cast<GLfloat>(m_width) / m_height);
     initMirrorGeometry();
     setupMirrorPlane();
 }
@@ -174,47 +178,36 @@ glm::vec3 TMirror::getNormal() const
     return glm::normalize(normal);
 }
 
-void TMirror::setupReflectionRendering()
+void TMirror::setClipPlane( glm::vec4 const & clipPlane)
 {
-    // Calculate reflected camera position
-    glm::vec3 mirrorNormal = getNormal();
-    glm::vec3 mirrorCenter = m_position;
+    m_clipPlane = clipPlane;
+}
 
-    // Calculate reflected camera position
-    glm::vec3 camPos = m_scene->Camera()->Position();
-    glm::vec3 reflectedCamPos = camPos - 2.0f * glm::dot(camPos - mirrorCenter, mirrorNormal) * mirrorNormal;
+glm::vec4 const & TMirror::ClipPlane() const
+{
+    return m_clipPlane;
+}
 
-    // Calculate reflected view matrix
-    glm::vec3 originalTarget = m_scene->Camera()->Position() + m_scene->Camera()->Front();
-    glm::vec3 reflectedTarget = originalTarget - 2.0f * glm::dot(originalTarget - mirrorCenter, mirrorNormal) * mirrorNormal;
+glm::mat4 TMirror::createReflectionMatrix(const glm::vec3& normal, float d)
+{
+    float a = normal.x, b = normal.y, c = normal.z;
 
-    // For the up vector, we'll use the world up vector (0, 1, 0) and reflect it
-    glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 reflectedUp = worldUp - 2.0f * glm::dot(worldUp, mirrorNormal) * mirrorNormal;
-
-    // Store the original viewport
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-
-    // Bind reflection framebuffer for rendering the reflected scene
-    glBindFramebuffer(GL_FRAMEBUFFER, m_reflectionFBO);
-    glViewport(0, 0, 1024, 1024);
-
-    // Clear the reflection buffer
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // In a real implementation, we would need to update the camera with the reflected view
-    // For now, we'll just set up the matrices for rendering
+    return glm::mat4(
+        1.0f - 2.0f * a * a, -2.0f * a * b,        -2.0f * a * c,        0.0f,
+        -2.0f * a * b,        1.0f - 2.0f * b * b, -2.0f * b * c,        0.0f,
+        -2.0f * a * c,        -2.0f * b * c,        1.0f - 2.0f * c * c, 0.0f,
+        -2.0f * a * d,        -2.0f * b * d,        -2.0f * c * d,        1.0f
+        );
 }
 
 void TMirror::renderReflection()
 {
     if (!m_initialized || !m_scene || !m_scene->Camera()) return;
 
-
     // Calculate reflection parameters
-    glm::vec3 mirrorNormal = getNormal();
-    glm::vec3 mirrorCenter = m_position;
+    glm::vec3 mirrorNormal = glm::normalize(getNormal());
+    glm::vec3 mirrorPoint = m_position;
+    float mirrorD = -glm::dot(mirrorNormal, mirrorPoint);
 
     // Get original camera parameters
     auto camera = m_scene->Camera();
@@ -222,25 +215,15 @@ void TMirror::renderReflection()
     glm::vec3 originalFront = camera->Front();
     glm::vec3 originalUp = camera->Up();
 
-    // Calculate reflected camera position
-    glm::vec3 toMirror = mirrorCenter - originalPos;
-    float distanceToMirror = glm::dot(toMirror, mirrorNormal);
-    glm::vec3 reflectedCamPos = originalPos + 2.0f * distanceToMirror * mirrorNormal;
-
-    // Calculate reflected camera direction
-    glm::vec3 originalTarget = originalPos + originalFront;
-    glm::vec3 toTarget = originalTarget - mirrorCenter;
-    glm::vec3 reflectedTarget = originalTarget - 2.0f * glm::dot(toTarget, mirrorNormal) * mirrorNormal;
-    glm::vec3 reflectedFront = glm::normalize(reflectedTarget - reflectedCamPos);
+    float distToPlane = glm::dot(originalPos, mirrorNormal) + mirrorD;
+    glm::vec3 reflectedCamPos = originalPos - 2.0f * distToPlane * mirrorNormal;
+    glm::vec3 reflectedFront = glm::reflect(originalFront, mirrorNormal);
 
     // Calculate reflected up vector
-    glm::vec3 reflectedUp = originalUp - 2.0f * glm::dot(originalUp, mirrorNormal) * mirrorNormal;
-    reflectedUp = glm::normalize(reflectedUp);
+    glm::vec3 reflectedUp = glm::reflect(originalUp, mirrorNormal);
 
-    // Calculate reflection matrix for clipping plane
-    float d = -glm::dot(mirrorNormal, mirrorCenter);
-    glm::vec4 clipPlane = glm::vec4(mirrorNormal, d);
-
+    // Calculate the look-at point from reflected position and reflected front
+    glm::vec3 reflectedLookAt = reflectedCamPos + reflectedFront;
 
     // Store original OpenGL state
     GLint originalFBO;
@@ -253,84 +236,32 @@ void TMirror::renderReflection()
     glViewport(0, 0, 1024, 1024);
 
     // Clear buffers
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Disable depth clamping if enabled
-    glDisable(GL_DEPTH_CLAMP);
     // Enable clipping plane to avoid rendering objects behind the mirror
     glEnable(GL_CLIP_DISTANCE0);
 
-    // Get projection matrix
-    glm::mat4 projection = *camera->ProjectionCptr();
+    // Create reflected view matrix directly from reflected camera parameters
+    glm::mat4 view = glm::lookAt(reflectedCamPos, reflectedLookAt, reflectedUp);
+    glFrontFace(GL_CW);
+    m_camera->setWindowRatio(camera->WindowRatio());
+    m_camera->setViewMatrix(view);
+    m_camera->setPosition(reflectedCamPos);
 
-    // Create reflected view matrix
-    glm::mat4 view = glm::lookAt(reflectedCamPos, reflectedCamPos + reflectedFront, reflectedUp);
-
+    glm::vec4 worldClipPlane(mirrorNormal, mirrorD);
+    setClipPlane(worldClipPlane);
     // Render all objects in the scene (except the mirror itself)
-    auto objects = SceneCptr()->SceneObjects();
-
-    //m_camera->setViewMatrixForce(view);
-
-    for (const auto& obj : objects)
+    for (const auto& obj : SceneCptr()->SceneObjects())
     {
-        /*
-        // Skip rendering the mirror itself
-        if (obj.get() == this) continue;
-        //To do: make mirror camera and give object mirror camera
-        // Get object's shader
-        auto shader = obj->Shader();
-        if (!shader) continue;
-
-        shader->Use();
-
-        // Set basic matrices
-        shader->setMat4("projection", projection);
-        shader->setMat4("view", view);
-
-        // Calculate and set model matrix
-        glm::mat4 model = obj->getModelMatrix();
-        shader->setMat4("model", model);
-
-        // Calculate and set normal matrix
-        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
-        shader->setMat3("normalMatrix", normalMatrix);
-
-        // Set clip plane uniform (if shader supports it)
-        try {
-            shader->setVec4("clipPlane", clipPlane);
-        } catch (...) {
-            // Shader might not have clipPlane uniform
-        }
-
-        // Set view position (reflected camera position)
-        shader->setVec3("viewPos", reflectedCamPos);
-
-        // Set lights
-        auto lights = SceneCptr()->Lights();
-        for (uint32_t i = 0; i < lights.size(); ++i)
-        {
-            std::string posStr = "lightPositions[" + std::to_string(i) + "]";
-            std::string colorStr = "lightColors[" + std::to_string(i) + "]";
-
-            // For lights, we need to reflect their positions too for accurate lighting
-            glm::vec3 lightPos = lights[i].Position();
-            glm::vec3 reflectedLightPos = lightPos - 2.0f * glm::dot(lightPos - mirrorCenter, mirrorNormal) * mirrorNormal;
-
-            shader->setVec3(posStr.c_str(), reflectedLightPos);
-            shader->setVec3(colorStr.c_str(), lights[i].Color());
-        }
-        */
-        obj->Update();
-
-        // Draw the object
+        obj->Update(m_camera);
         obj->Draw();
     }
-
     SceneCptr()->SkyBox()->Update();
     SceneCptr()->SkyBox()->renderSkybox(view);
     SceneCptr()->SkyBox()->Draw();
 
+    glFrontFace(GL_CCW);
 
     // Disable clipping plane
     glDisable(GL_CLIP_DISTANCE0);
@@ -356,8 +287,9 @@ void TMirror::Draw()
 
         Shader()->setMat4("model", model);
 
-        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
-        Shader()->setMat3("normalMatrix", normalMatrix);
+        glm::vec3 normal = glm::transpose(glm::inverse(glm::mat3(model))) * getNormal();
+        Shader()->setVec3("normalVec", normal);
+        Shader()->setVec4("clipPlane", ClipPlane());
 
         // Set view position
         if (SceneCptr() && SceneCptr()->Camera())

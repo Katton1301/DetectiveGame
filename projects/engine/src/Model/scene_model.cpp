@@ -54,11 +54,16 @@ TSceneModel& TSceneModel::operator=(TSceneModel&& other) noexcept
 
 void TSceneModel::Update()
 {
+    Update(SceneCptr()->Camera());
+}
+
+void TSceneModel::Update(std::shared_ptr<ICamera> _camera)
+{
     glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(ModelMatrix())));
 
     Shader()->Use();
-    Shader()->setMat4("projection", *SceneCptr()->Camera()->ProjectionCptr());
-    Shader()->setMat4("view", SceneCptr()->Camera()->ViewMatrix());
+    Shader()->setMat4("projection", *_camera->ProjectionCptr());
+    Shader()->setMat4("view", _camera->ViewMatrix());
     Shader()->setMat4("model", ModelMatrix());
     Shader()->setMat3("normalMatrix", normalMatrix);
 
@@ -70,7 +75,7 @@ void TSceneModel::Update()
         str = "lightColors[" + std::to_string(i) + "]";
         Shader()->setVec3(str.c_str(), SceneCptr()->Lights().at(i).Color());
     }
-    Shader()->setVec3("viewPos", SceneCptr()->Camera()->Position());
+    Shader()->setVec3("viewPos", _camera->Position());
 
 
     // Set material properties

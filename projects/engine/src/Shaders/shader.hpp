@@ -33,6 +33,8 @@ public:
 
     void setVec2(const GLchar* vecName,  glm::vec2 const & _vec2);
 
+    void setVec4(const GLchar* vecName,  glm::vec4 const & _vec4);
+
     void setFloat(const GLchar* vecName,  GLfloat v);
 
     void setInt(const GLchar* vecName,  GLuint v);

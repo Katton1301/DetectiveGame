@@ -3,7 +3,7 @@
 #include <tools/pbr_builder.hpp>
 #include <textures/texture.hpp>
 #include <common/vertices.hpp>
-#include <camera/camera.hpp>
+#include <camera/static_camera.hpp>
 #include <scene/scene_interface.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,9 +22,6 @@ public:
 
     // Get mirror transform matrix
     glm::mat4 getModelMatrix() const;
-
-    // Setup mirror reflection rendering
-    void setupReflectionRendering();
 
     // Render the mirror with reflection
     void renderReflection();
@@ -45,14 +42,16 @@ public:
     HShader Shader() const { return m_shader; }
     std::shared_ptr<IScene> const & SceneCptr() const { return m_scene; }
 
-    void setCamera(std::shared_ptr<ICamera> & _camera){m_camera = _camera;}
-
 
 private:
+    glm::mat4 createReflectionMatrix(const glm::vec3& normal, float d);
     void initMirrorGeometry();
     void setupMirrorPlane();
     glm::mat4 calculateReflectionMatrix(const glm::vec3& mirrorNormal, const glm::vec3& mirrorPoint) const;
     glm::vec3 getNormal() const;
+    void setClipPlane( glm::vec4 const & clipPlane);
+
+    glm::vec4 const & ClipPlane() const;
 
 private:
     float m_width;
@@ -60,6 +59,8 @@ private:
     glm::vec3 m_position;
     glm::vec3 m_rotation;  // Euler angles
     glm::vec3 m_scale;
+
+    glm::vec4 m_clipPlane;
 
     // Mirror plane geometry
     std::vector<float> m_mirrorVertices;
@@ -73,7 +74,7 @@ private:
     uint32_t m_reflectionTexture;
     uint32_t m_reflectionDepthBuffer;
 
-    std::shared_ptr<ICamera> m_camera;
+    std::shared_ptr<TStaticCamera> m_camera;
 
     // Shader and scene references
     HShader m_shader;

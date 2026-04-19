@@ -36,8 +36,8 @@ void TSandbox::createWindow( uint32_t width, uint32_t height )
 void TSandbox::init()
 {
     GLfloat windowRatio = static_cast<GLfloat>(cptrWindowController()->Width()) / cptrWindowController()->Height();
-    auto camera = createCamera(TCameraType::DEFAULT_CAMERA, glm::vec3(0.0f, 0.0f, 3.0f), windowRatio);
-    m_windowController->setCamera(camera);
+    auto windowCamera = std::make_shared<TControlledCamera>(glm::vec3(0.0f, 0.0f, 3.0f), windowRatio);
+    m_windowController->setCamera(windowCamera);
     m_windowController->init();
 
     glEnable(GL_DEPTH_TEST);
@@ -76,12 +76,11 @@ void TSandbox::init()
     m_sphereVertices = std::make_shared<TSphereVertices>(64);
 
     // Initialize mirror
-    m_mirror = std::make_unique<TMirror>(1.0f, 1.0f);  // 2x2 meter mirror
-    m_mirror->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));  // Position it in front of the scene
+    m_mirror = std::make_unique<TMirror>(5.0f, 5.0f);  // 2x2 meter mirror
+    m_mirror->setPosition(glm::vec3(0.0f, 3.0f, 3.0f));  // Position it in front of the scene
     m_mirror->setRotation(glm::vec3(0.0f, 0.0f, 0.0f));    // Rotate to face the scene
     m_mirror->setShader(createMirrorShader());
     m_mirror->setScene(m_scene);
-    m_mirror->setCamera(camera);
 
     // pbr: load the HDR environment map
     // ---------------------------------

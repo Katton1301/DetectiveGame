@@ -2,7 +2,6 @@
 #include <shaders/shader_collection.hpp>
 #include <textures/texture.hpp>
 #include <common/vertices.hpp>
-#include <camera/camera.hpp>
 #include <vector>
 
 
